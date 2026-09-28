@@ -10,7 +10,7 @@ import {
 import { platform } from '@tauri-apps/plugin-os'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ClockIcon, EyeIcon } from 'lucide-react'
-import { type ComponentProps, type ReactNode, useCallback, useMemo } from 'react'
+import { type ComponentProps, type ReactNode, useCallback, useEffect, useMemo, useRef } from 'react'
 import { useSchedulingAvailable } from '../../../lib/scheduler'
 import { openWindow } from '../../../lib/window'
 import type { Template } from '../../../types/template'
@@ -77,7 +77,20 @@ export default function OperationFooter({
     // (sandboxed installs, remote hosts) — mirrors the Cron options section on the operation pages.
     const schedulingAvailable = useSchedulingAvailable()
 
+    // onStart is deferred, so the button only disables once startIsPending flips; guard the
+    // gap so a double press can't start the operation twice. Released when the run settles.
+    const startPressedRef = useRef(false)
+    useEffect(() => {
+        if (!startIsPending) {
+            startPressedRef.current = false
+        }
+    }, [startIsPending])
+
     const handleStartPress = useCallback(() => {
+        if (startPressedRef.current) {
+            return
+        }
+        startPressedRef.current = true
         setTimeout(() => onStart(), 100)
     }, [onStart])
 
