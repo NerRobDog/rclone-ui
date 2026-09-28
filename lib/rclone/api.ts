@@ -73,6 +73,11 @@ function registerSubmittedJob(
     job: Pick<WatchedJob, 'operation' | 'sources' | 'destination'>,
     isDryRun: boolean
 ) {
+    if (job.sources?.length) {
+        useStore.setState((state) => ({
+            jobLabels: { ...state.jobLabels, [jobid]: job.sources! },
+        }))
+    }
     if (isDryRun) {
         useStore.setState((state) => ({
             dryRunJobIds: state.dryRunJobIds.includes(jobid)
@@ -180,199 +185,189 @@ export async function startMove(args: MoveArgs, isDryRun = false) {
 async function fetchTransferred() {
     const transferredStats = await rclone('/core/transferred')
 
-    const transferred = transferredStats?.transferred
+    return transferredStats?.transferred ?? []
+}
 
-    return transferred
+type TransferredItem = Awaited<ReturnType<typeof fetchTransferred>>[number]
+type JobStatus = Awaited<ReturnType<typeof fetchJobStatus>>
+
+function fetchJobStatus(jobId: number) {
+    return rclone('/job/status', { params: { query: { jobid: jobId } } }) as Promise<
+        Awaited<ReturnType<typeof rclone<'/job/status'>>> & { group?: string }
+    >
+}
+
+function stringField(item: unknown, key: string) {
+    const value =
+        item && typeof item === 'object' ? (item as Record<string, unknown>)[key] : undefined
+    return typeof value === 'string' && value ? value : undefined
+}
+
+function readablePath(path: string) {
+    return platform() === 'windows' ? path.replace(RE_WINDOWS_EXTENDED_PATH, '') : path
 }
 
 async function fetchJob(
     jobId: number,
-    transferred: Awaited<ReturnType<typeof fetchTransferred>>,
-    checkingItems: { group?: string; name?: string; size?: number }[]
-) {
-    console.log('[fetchJob] fetching job', jobId)
+    transferred: TransferredItem[],
+    status: JobStatus | null,
+    isRunning: boolean
+): Promise<JobItem | null> {
+    const group = `job/${jobId}`
 
-    const job = await rclone('/core/stats', {
-        params: {
-            query: {
-                group: `job/${jobId}`,
-            },
-        },
-    })
-    console.log('[fetchJob] job stats', jobId, JSON.stringify(job, null, 2))
-
-    const jobStatus = await rclone('/job/status', {
-        params: {
-            query: {
-                jobid: jobId,
-            },
-        },
-    })
-    console.log('[fetchJob] job status', jobId, JSON.stringify(jobStatus, null, 2))
-
-    let hasError = !!jobStatus?.error
-    const isDryRun = useStore.getState().dryRunJobIds.includes(jobId)
-
-    if (
-        jobStatus.output &&
-        typeof jobStatus.output === 'object' &&
-        'results' in jobStatus.output &&
-        Array.isArray(jobStatus.output.results)
-    ) {
-        if (!hasError) {
-            hasError = jobStatus.output.results.some((result: any) => !!result?.error)
-        }
-    }
-
-    const jobCheckingItems = checkingItems.filter((c) => c.group === `job/${jobId}`)
-    const isChecking = jobCheckingItems.length > 0
-    const checkingCount = jobCheckingItems.length
-
-    console.log('[fetchJob] checking state', jobId, { isChecking, checkingCount })
-
-    const relatedItems = transferred.filter((t) => t.group === `job/${jobId}`)
-
-    if (relatedItems.length === 0 && !isChecking) {
-        console.log('[fetchJob] no relatedItems and not checking', jobId)
+    // Children of a job/batch are jobs too, but they report into the parent's stats group.
+    if (status?.group && status.group !== group) {
         return null
     }
 
-    console.log('[fetchJob] relatedItems', JSON.stringify(relatedItems, null, 2))
+    const job = await rclone('/core/stats', { params: { query: { group } } }).catch(() => null)
 
-    const sources = new Set<string>()
+    let hasError = !!status?.error
+    const output = status?.output as { results?: unknown } | undefined
+    if (!hasError && Array.isArray(output?.results)) {
+        hasError = output.results.some((result: any) => !!result?.error)
+    }
 
-    if (relatedItems.length === 1) {
-        if (relatedItems[0].srcFs) {
-            const combinedSource = `${relatedItems[0].srcFs}${relatedItems[0].name}`
+    // Per-group stats: core/transferred only lists *finished* files, and core/stats reports
+    // `checking` as plain names without a group.
+    const transferring: unknown[] = job?.transferring ?? []
+    const checkingNames = ((job?.checking ?? []) as unknown[])
+        .map((c) => (typeof c === 'string' ? c : stringField(c, 'name')))
+        .filter((c): c is string => !!c)
+    const items: unknown[] = [...transferred.filter((t) => t.group === group), ...transferring]
 
+    const sources = new Set<string>(useStore.getState().jobLabels[jobId] ?? [])
+
+    if (sources.size === 0) {
+        const withSrc = items.filter((item) => stringField(item, 'srcFs'))
+        if (items.length === 1 && withSrc.length === 1) {
             sources.add(
-                platform() === 'windows'
-                    ? combinedSource.replace(RE_WINDOWS_EXTENDED_PATH, '')
-                    : combinedSource
-            )
-        }
-    } else {
-        for (const item of relatedItems) {
-            if (item.srcFs) {
-                sources.add(
-                    platform() === 'windows'
-                        ? item.srcFs.replace(RE_WINDOWS_EXTENDED_PATH, '')
-                        : item.srcFs
+                readablePath(
+                    `${stringField(items[0], 'srcFs')}${stringField(items[0], 'name') ?? ''}`
                 )
+            )
+        } else {
+            for (const item of withSrc) {
+                sources.add(readablePath(stringField(item, 'srcFs')!))
             }
         }
     }
 
-    if (isChecking && sources.size === 0) {
-        for (const checkItem of jobCheckingItems) {
-            if (checkItem.name) {
-                sources.add(checkItem.name)
+    // Downloads (copyurl) and deletes have no source fs: show what is written/removed instead.
+    if (sources.size === 0) {
+        for (const item of items) {
+            const label = stringField(item, 'dstFs') ?? stringField(item, 'name')
+            if (label) {
+                sources.add(readablePath(label))
             }
         }
     }
 
-    if (sources.size === 0 && !hasError) {
-        console.log('[fetchJob] source or hasError not found', jobId)
+    if (sources.size === 0) {
+        for (const name of checkingNames) {
+            sources.add(name)
+        }
+    }
+
+    if (sources.size === 0 && !hasError && !isRunning) {
         return null
     }
+
+    const bytes = job?.bytes ?? 0
+    const totalBytes = job?.totalBytes ?? 0
 
     return {
         id: jobId,
-        bytes: job.bytes,
-        totalBytes: job.totalBytes,
-        speed: job.speed,
+        type: isRunning ? 'active' : 'inactive',
+        bytes,
+        totalBytes,
+        speed: isRunning ? (job?.speed ?? 0) : 0,
 
-        done: job.bytes === job.totalBytes,
-        progress: job.totalBytes > 0 ? Math.round((job.bytes / job.totalBytes) * 100) : 0,
-        hasError: hasError,
+        done: bytes === totalBytes,
+        progress: totalBytes > 0 ? Math.round((bytes / totalBytes) * 100) : 0,
+        hasError,
 
         sources: Array.from(sources),
-        isChecking,
-        checkingCount,
-        isDryRun,
+        isChecking: isRunning && checkingNames.length > 0,
+        checkingCount: isRunning ? checkingNames.length : 0,
+        isDryRun: useStore.getState().dryRunJobIds.includes(jobId),
     }
 }
 
+// A finished job never changes again, so it is fetched once instead of on every refresh.
+const finishedJobs = new Map<string, JobItem | null>()
+const FETCH_JOB_CONCURRENCY = 8
+
 export async function listTransfers() {
-    console.log('[listTransfers] starting')
+    // job/list is the source of truth for which jobs exist: jobs that are still listing or
+    // checking, or that never transfer anything (deletes, up-to-date syncs), have no stats yet.
+    const [jobList, transferred, allStats] = await Promise.all([
+        rclone('/job/list').catch((error) => {
+            console.error('[listTransfers] job/list failed', error)
+            return null
+        }),
+        fetchTransferred(),
+        rclone('/core/stats'),
+    ])
 
-    const allStats = await rclone('/core/stats')
-    console.log('[listTransfers] allStats', JSON.stringify(allStats, null, 2))
+    const runningIds = new Set<number>(jobList?.runningIds ?? [])
+    const jobIds = new Set<number>(jobList?.jobids ?? [])
 
-    const transferring = allStats?.transferring || []
-    const checking = allStats?.checking || []
+    // Jobs expire from job/list (after 60s by default) while their stats live on.
+    for (const t of [...transferred, ...(allStats?.transferring ?? [])]) {
+        if (t.group?.startsWith('job/')) {
+            jobIds.add(Number(t.group.split('/')[1]))
+        }
+    }
+    if (!jobList) {
+        for (const t of allStats?.transferring ?? []) {
+            if (t.group?.startsWith('job/')) {
+                runningIds.add(Number(t.group.split('/')[1]))
+            }
+        }
+    }
 
-    console.log('[listTransfers] transferring count:', transferring.length)
-    console.log('[listTransfers] checking count:', checking.length)
+    const sortedIds = Array.from(jobIds)
+        .filter((id) => Number.isFinite(id))
+        .sort((a, b) => a - b)
 
-    const transferred = await fetchTransferred()
-    console.log('[listTransfers] transferred count:', transferred?.length || 0)
+    const results: (JobItem | null)[] = new Array(sortedIds.length).fill(null)
+    let cursor = 0
+    const worker = async () => {
+        while (cursor < sortedIds.length) {
+            const index = cursor++
+            const jobId = sortedIds[index]
+            const cacheKey = `${jobList?.executeId}:${jobId}`
+
+            if (!runningIds.has(jobId) && finishedJobs.has(cacheKey)) {
+                results[index] = finishedJobs.get(cacheKey)!
+                continue
+            }
+
+            // An expired job is unknown to job/status; its stats still describe it.
+            const status = await fetchJobStatus(jobId).catch(() => null)
+            const isRunning = status ? !status.finished : runningIds.has(jobId)
+            const job = await fetchJob(jobId, transferred, status, isRunning)
+
+            if (status?.finished && jobList?.executeId) {
+                finishedJobs.set(cacheKey, job)
+            }
+            results[index] = job
+        }
+    }
+    await Promise.all(Array.from({ length: FETCH_JOB_CONCURRENCY }, worker))
 
     const jobs = {
         active: [] as JobItem[],
         inactive: [] as JobItem[],
     }
-
-    const transferringJobIds = new Set(
-        transferring
-            .filter((t) => t.group?.startsWith('job/'))
-            .map((t) => Number(t.group!.split('/')[1]))
-    )
-
-    const checkingJobIds = new Set(
-        checking
-            .filter((c) => c.group?.startsWith('job/'))
-            .map((c) => Number(c.group!.split('/')[1]))
-    )
-
-    const activeJobIds = new Set([...transferringJobIds, ...checkingJobIds])
-    const sortedActiveJobIds = Array.from(activeJobIds).sort((a, b) => a - b)
-
-    console.log('[listTransfers] transferring job IDs:', Array.from(transferringJobIds))
-    console.log('[listTransfers] checking job IDs:', Array.from(checkingJobIds))
-    console.log('[listTransfers] combined active job IDs:', sortedActiveJobIds)
-
-    const isWindows = platform() === 'windows'
-    console.log('[listTransfers] isWindows', isWindows)
-
-    for (const jobId of sortedActiveJobIds) {
-        const job = await fetchJob(jobId, transferred, checking)
+    for (const job of results) {
         if (job) {
-            jobs.active.push({
-                ...job,
-                type: 'active',
-            })
+            jobs[job.type].push(job)
         }
     }
 
-    const inactiveJobIds = new Set(
-        transferred
-            ?.filter((t) => t.group?.startsWith('job/'))
-            .map((t) => Number(t.group!.split('/')[1]))
-            .filter((id) => !activeJobIds.has(id))
-            .sort((a, b) => a - b)
-    )
-    console.log('[listTransfers] inactive job IDs:', Array.from(inactiveJobIds))
-
-    for (const jobId of inactiveJobIds) {
-        const job = await fetchJob(jobId, transferred, checking)
-        if (job) {
-            jobs.inactive.push({
-                ...job,
-                speed: 0,
-                type: 'inactive',
-                isChecking: false,
-                checkingCount: 0,
-            })
-        }
-    }
-
-    console.log(
-        '[listTransfers] final result - active:',
-        jobs.active.length,
-        'inactive:',
-        jobs.inactive.length
-    )
+    console.log('[listTransfers] active:', jobs.active.length, 'inactive:', jobs.inactive.length)
 
     return jobs
 }

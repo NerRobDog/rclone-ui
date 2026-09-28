@@ -38,6 +38,9 @@ interface State {
 
     watchedJobs: Record<number, WatchedJob>
 
+    /** What each job started from this app operates on, so the Transfers list can label it. */
+    jobLabels: Record<number, string[]>
+
     reconnectDialogsShown: string[]
 }
 
@@ -55,6 +58,8 @@ export const useStore = create<State>()(
             dryRunJobIds: [],
 
             watchedJobs: {},
+
+            jobLabels: {},
 
             reconnectDialogsShown: [],
         }),
