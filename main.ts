@@ -821,6 +821,7 @@ async function checkVersion() {
 }
 
 async function checkRclone() {
+    const previousHostId = usePersistedStore.getState().currentHostId
     let currentHost = selectCurrentHost(usePersistedStore.getState()) ?? makeLocalHost()
 
     let hostInfo = await getHostInfo({
@@ -876,6 +877,13 @@ async function checkRclone() {
         hosts: [...prev.hosts.filter((h) => h.id !== currentHost.id), currentHost],
         currentHostId: currentHost.id,
     }))
+
+    // The hidden main window has no host-switch subscriber re-pointing useHostStore, so after
+    // falling back to local it would still hold the remote host's state (and the scheduler
+    // reconcile would sweep genuine local registrations as strays).
+    if (currentHost.id !== previousHostId) {
+        await initHostStore(currentHost.id)
+    }
 }
 
 getCurrentWindow().listen('tauri://close-requested', async () => {
