@@ -18,7 +18,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { getFsInfo } from '../../../lib/format.ts'
 import FileIcon from './FileIcon'
 import type { Entry, SelectItem } from './types'
-import { renamePath } from './utils'
+import { RE_PATH_SEPARATOR, renamePath } from './utils'
 
 type CaseMode = 'none' | 'lower' | 'upper' | 'title'
 
@@ -138,6 +138,7 @@ function buildPlan(
 
     const errorFor = (row: Omit<PlanRow, 'error'>) => {
         if (!row.newName) return 'Name cannot be empty'
+        if (RE_PATH_SEPARATOR.test(row.newName)) return 'Name cannot contain / or \\'
         if ((targetCounts.get(row.target) ?? 0) > 1) return 'Duplicate name'
         if (row.newName !== row.oldName && currentPaths.has(row.target)) {
             return 'Would collide with another selected item'
