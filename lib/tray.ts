@@ -211,7 +211,7 @@ export async function initTray() {
             id: 'rclone-menu5',
             menu: await buildMenu(),
             icon: await resolveTrayIconForTheme(),
-            tooltip: 'Rclone',
+            tooltip: 'satoru.link',
             showMenuOnLeftClick: platform() === 'macos',
             iconAsTemplate: true,
             action: async (event: TrayIconEvent) => {

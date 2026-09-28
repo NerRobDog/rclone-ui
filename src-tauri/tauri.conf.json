@@ -1,7 +1,7 @@
 {
     "$schema": "https://schema.tauri.app/config/2",
-    "productName": "Rclone UI",
-    "mainBinaryName": "Rclone UI",
+    "productName": "satoru.link",
+    "mainBinaryName": "satoru",
     "version": "3.4.3",
     "identifier": "com.rclone.ui",
     "build": {
@@ -13,7 +13,7 @@
     "app": {
         "windows": [
             {
-                "title": "Rclone UI",
+                "title": "satoru.link",
                 "width": 0,
                 "height": 0,
                 "center": true,
@@ -45,13 +45,13 @@
             "icons/icon.ico"
         ],
         "resources": ["icons/favicon/*"],
-        "shortDescription": "Cross-platform GUI for rclone & S3",
-        "longDescription": "Cross-platform GUI for rclone & S3",
+        "shortDescription": "Cloud storage for video production and podcast studios",
+        "longDescription": "Cloud storage for video production and podcast studios: mount the cloud as a regular drive, copy and sync large source files, schedule archives.",
         "license": "Apache-2.0",
         "homepage": "https://github.com/rclone-ui/rclone-ui",
-        "publisher": "Rclone UI",
+        "publisher": "satoru.link",
         "category": "Utility",
-        "copyright": "Copyright © 2026 Rclone UI.",
+        "copyright": "Copyright © 2026 satoru.link. Based on Rclone UI (Apache-2.0).",
         "macOS": {
             "dmg": {
                 "appPosition": {

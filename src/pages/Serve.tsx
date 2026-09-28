@@ -205,10 +205,8 @@ export default function Serve() {
                             startContent={
                                 <Avatar
                                     radius="lg"
-                                    fallback={
-                                        <ServerCrashIcon className="text-success-foreground" />
-                                    }
-                                    className="bg-cyan-500"
+                                    fallback={<ServerCrashIcon />}
+                                    color="primary"
                                 />
                             }
                             indicator={<ServerCrashIcon />}
@@ -228,7 +226,11 @@ export default function Serve() {
                     <AccordionItem
                         key="vfs"
                         startContent={
-                            <Avatar color="warning" radius="lg" fallback={<WavesLadderIcon />} />
+                            <Avatar
+                                className="bg-content3 text-foreground-600"
+                                radius="lg"
+                                fallback={<WavesLadderIcon />}
+                            />
                         }
                         indicator={<WavesLadderIcon />}
                         title="VFS"
@@ -246,7 +248,11 @@ export default function Serve() {
                     <AccordionItem
                         key="filters"
                         startContent={
-                            <Avatar color="danger" radius="lg" fallback={<FilterIcon />} />
+                            <Avatar
+                                className="bg-content3 text-foreground-600"
+                                radius="lg"
+                                fallback={<FilterIcon />}
+                            />
                         }
                         indicator={<FilterIcon />}
                         title="Filters"
@@ -264,7 +270,11 @@ export default function Serve() {
                     <AccordionItem
                         key="config"
                         startContent={
-                            <Avatar color="default" radius="lg" fallback={<WrenchIcon />} />
+                            <Avatar
+                                className="bg-content3 text-foreground-600"
+                                radius="lg"
+                                fallback={<WrenchIcon />}
+                            />
                         }
                         indicator={<WrenchIcon />}
                         title="Config"
@@ -451,7 +461,7 @@ export default function Serve() {
                         <Button
                             size="lg"
                             type="button"
-                            color="primary"
+                            color="default"
                             isIconOnly={true}
                             onPress={async () => {
                                 const res = await message(

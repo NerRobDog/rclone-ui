@@ -140,12 +140,7 @@ export default function RemoteCreateDrawer({
             }}
             hideCloseButton={true}
         >
-            <DrawerContent
-                className={cn(
-                    'bg-content1/80 backdrop-blur-md dark:bg-content1/90',
-                    platform() === 'macos' && 'pt-5'
-                )}
-            >
+            <DrawerContent className={cn('bg-content1', platform() === 'macos' && 'pt-5')}>
                 {(close) => (
                     <>
                         <DrawerHeader className="flex flex-row justify-between gap-1">

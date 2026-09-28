@@ -15,6 +15,7 @@ import { readTextFileLines } from '@tauri-apps/plugin-fs'
 import { openUrl, revealItemInDir } from '@tauri-apps/plugin-opener'
 import { version as osVersion, type } from '@tauri-apps/plugin-os'
 import { useMemo } from 'react'
+import { LOG_FILE_NAME } from '../../../lib/brand'
 import rclone from '../../../lib/rclone/client'
 import { getDefaultPaths } from '../../../lib/rclone/common'
 import { DOUBLE_BACKSLASH_REGEX } from '../../../lib/rclone/constants'
@@ -94,7 +95,7 @@ export default function AboutSection() {
     const logsQuery = useQuery({
         queryKey: ['last30LogLines'],
         queryFn: async () => {
-            const logFilePath = info.dirs!.appLog + '/Rclone UI.log'
+            const logFilePath = `${info.dirs!.appLog}/${LOG_FILE_NAME}`
             const logLines = await readTextFileLines(logFilePath)
 
             const lines: string[] = []
@@ -153,7 +154,7 @@ export default function AboutSection() {
                                     })
                                     return
                                 }
-                                await revealItemInDir(info.dirs.appLog + '/Rclone UI.log')
+                                await revealItemInDir(`${info.dirs.appLog}/${LOG_FILE_NAME}`)
                             }}
                         >
                             Open Logs Folder

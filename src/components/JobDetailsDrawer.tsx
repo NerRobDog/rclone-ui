@@ -175,10 +175,7 @@ export default function JobDetailsDrawer({
     return (
         <Drawer isOpen={isOpen} placement="bottom" size="2xl" onClose={onClose}>
             <DrawerContent
-                className={cn(
-                    'bg-content1/80 backdrop-blur-md dark:bg-content1/90',
-                    platform() === 'macos' ? 'pt-6' : undefined
-                )}
+                className={cn('bg-content1', platform() === 'macos' ? 'pt-6' : undefined)}
             >
                 <DrawerHeader className="flex flex-row items-center gap-2">
                     Job Details #{selectedJob.id}{' '}

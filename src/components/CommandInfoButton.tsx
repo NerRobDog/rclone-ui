@@ -17,7 +17,7 @@ export default function CommandInfoButton({ content }: { content: string }) {
                     }}
                     size="lg"
                     type="button"
-                    color="primary"
+                    color="default"
                     // variant="faded"
                     isIconOnly={true}
                 >
@@ -36,10 +36,7 @@ export default function CommandInfoButton({ content }: { content: string }) {
                 placement={'bottom'}
             >
                 <DrawerContent
-                    className={cn(
-                        'bg-content1/80 backdrop-blur-md dark:bg-content1/90',
-                        platform() === 'macos' ? 'pt-4' : undefined
-                    )}
+                    className={cn('bg-content1', platform() === 'macos' ? 'pt-4' : undefined)}
                 >
                     <DrawerHeader>Documentation</DrawerHeader>
                     <DrawerBody className="pb-20 whitespace-pre-wrap text-large">

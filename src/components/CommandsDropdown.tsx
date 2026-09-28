@@ -20,7 +20,7 @@ export default function CommandsDropdown({
                 <Button
                     size="lg"
                     type="button"
-                    color="primary"
+                    color="default"
                     isIconOnly={!title}
                     // variant="faded"
                 >
@@ -37,7 +37,7 @@ export default function CommandsDropdown({
                     })
                 }}
                 disabledKeys={currentCommand ? [currentCommand] : []}
-                color="primary"
+                color="default"
             >
                 <DropdownSection title={title ? undefined : 'Run another command'}>
                     <DropdownItem key="download">Download</DropdownItem>

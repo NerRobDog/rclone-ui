@@ -261,12 +261,7 @@ export default function TemplateAddDrawer({
             onClose={onClose}
             hideCloseButton={true}
         >
-            <DrawerContent
-                className={cn(
-                    'bg-content1/80 backdrop-blur-md dark:bg-content1/90',
-                    platform() === 'macos' && 'pt-5'
-                )}
-            >
+            <DrawerContent className={cn('bg-content1', platform() === 'macos' && 'pt-5')}>
                 {(close) => (
                     <>
                         <DrawerHeader className="px-0 pb-0">
@@ -399,7 +394,7 @@ export default function TemplateAddDrawer({
                                             key="mount"
                                             startContent={
                                                 <Avatar
-                                                    color="secondary"
+                                                    className="bg-content3 text-foreground-600"
                                                     radius="lg"
                                                     fallback={<HardDriveIcon />}
                                                 />
@@ -424,7 +419,7 @@ export default function TemplateAddDrawer({
                                             key="config"
                                             startContent={
                                                 <Avatar
-                                                    color="default"
+                                                    className="bg-content3 text-foreground-600"
                                                     radius="lg"
                                                     fallback={<WrenchIcon />}
                                                 />
@@ -446,7 +441,7 @@ export default function TemplateAddDrawer({
                                             key="vfs"
                                             startContent={
                                                 <Avatar
-                                                    color="warning"
+                                                    className="bg-content3 text-foreground-600"
                                                     radius="lg"
                                                     fallback={<WavesLadderIcon />}
                                                 />
@@ -468,7 +463,7 @@ export default function TemplateAddDrawer({
                                             key="filters"
                                             startContent={
                                                 <Avatar
-                                                    color="danger"
+                                                    className="bg-content3 text-foreground-600"
                                                     radius="lg"
                                                     fallback={<FilterIcon />}
                                                 />
@@ -513,7 +508,7 @@ export default function TemplateAddDrawer({
                                             key="sync"
                                             startContent={
                                                 <Avatar
-                                                    color="success"
+                                                    className="bg-content3 text-foreground-600"
                                                     radius="lg"
                                                     fallback={<FolderSyncIcon />}
                                                 />
@@ -538,9 +533,9 @@ export default function TemplateAddDrawer({
                                                 <Avatar
                                                     radius="lg"
                                                     fallback={
-                                                        <ServerCrashIcon className="text-success-foreground" />
+                                                        <ServerCrashIcon className="text-foreground-600" />
                                                     }
-                                                    className="bg-cyan-500"
+                                                    className="bg-content3 text-foreground-600"
                                                 />
                                             }
                                             indicator={<ServerCrashIcon />}

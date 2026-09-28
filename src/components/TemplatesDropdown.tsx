@@ -49,8 +49,8 @@ export default function TemplatesDropdown({
                     onPress={() => {}}
                     size="lg"
                     type="button"
-                    color="primary"
-                    variant="shadow"
+                    color="default"
+                    variant="flat"
                     isIconOnly={true}
                 >
                     <FoldersIcon className="size-7" />
@@ -118,7 +118,7 @@ export default function TemplatesDropdown({
                         }, 100)
                     }
                 }}
-                color="primary"
+                color="default"
                 disabledKeys={isDisabled ? ['add'] : []}
             >
                 <DropdownSection

@@ -679,7 +679,7 @@ async fn update_system_rclone() -> Result<i32, String> {
 
         // Escape for embedding inside an AppleScript string literal
         let applescript_cmd = cmdline.replace('\\', "\\\\").replace('"', "\\\"");
-        let prompt = "Rclone UI needs permission to run rclone selfupdate.";
+        let prompt = "satoru.link needs permission to update its engine.";
         let script = format!(
             "do shell script \"{}\" with administrator privileges with prompt \"{}\"",
             applescript_cmd,
@@ -704,7 +704,7 @@ async fn update_system_rclone() -> Result<i32, String> {
         // Try PolicyKit first (graphical auth prompt on most desktops)
         let mut pkexec_args: Vec<String> = Vec::new();
         pkexec_args.push("--description".to_string());
-        pkexec_args.push("Rclone UI needs to run rclone selfupdate".to_string());
+        pkexec_args.push("satoru.link needs to update its engine".to_string());
         pkexec_args.push("env".to_string());
         pkexec_args.push(path_env.to_string());
         pkexec_args.push("rclone".to_string());
@@ -715,7 +715,7 @@ async fn update_system_rclone() -> Result<i32, String> {
             Err(_e) => {
                 // Fallback to sudo with custom prompt (works if the user has NOPASSWD or cached credentials)
                 let mut sudo_env = std::collections::HashMap::new();
-                sudo_env.insert("SUDO_PROMPT", "Rclone UI needs permission to run rclone selfupdate. Please enter your password: ");
+                sudo_env.insert("SUDO_PROMPT", "satoru.link needs permission to update its engine. Please enter your password: ");
 
                 let mut sudo_args: Vec<String> = Vec::new();
                 sudo_args.push("-n".to_string());

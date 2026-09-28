@@ -368,7 +368,7 @@ export default function Download() {
                         <Button
                             size="lg"
                             type="button"
-                            color="primary"
+                            color="default"
                             isIconOnly={true}
                             onPress={async () => {
                                 const res = await message(

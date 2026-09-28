@@ -305,7 +305,7 @@ export default function Templates() {
                         : 'translate-y-full opacity-0 pointer-events-none'
                 }`}
             >
-                <div className="flex flex-row items-center justify-between gap-2.5 px-3.5 bg-content/70 backdrop-blur-lg rounded-full py-2.5 border-divider border">
+                <div className="flex flex-row items-center justify-between gap-2.5 px-3.5 bg-content1 rounded-full py-2.5 border-divider border">
                     <Button
                         variant="flat"
                         color="success"

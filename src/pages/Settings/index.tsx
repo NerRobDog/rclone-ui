@@ -2,7 +2,6 @@ import { Button, Input, Spinner, Tab, Tabs, Tooltip, cn } from '@heroui/react'
 import { useQuery } from '@tanstack/react-query'
 import { getVersion as getUiVersion } from '@tauri-apps/api/app'
 import { message } from '@tauri-apps/plugin-dialog'
-import { openUrl } from '@tauri-apps/plugin-opener'
 import { platform } from '@tauri-apps/plugin-os'
 import {
     CodeIcon,
@@ -22,6 +21,7 @@ import { LOCAL_HOST_ID } from '../../../lib/hosts'
 import rclone from '../../../lib/rclone/client'
 import { useStore } from '../../../store/memory'
 import { usePersistedStore } from '../../../store/persisted'
+import { SatoruLockup } from '../../components/brand/logo'
 import AboutSection from './AboutSection'
 import ConfigSection from './ConfigSection'
 import GeneralSection from './GeneralSection'
@@ -80,7 +80,7 @@ export default function Settings() {
         return (
             <div className="flex flex-col items-center justify-center w-screen h-screen gap-10 overflow-hidden animate-fade-in">
                 <Spinner size="lg" className="scale-150" />
-                <p className="text-lg text-center text-neutral-500">Restarting rclone...</p>
+                <p className="text-lg text-center text-foreground-500">Restarting the engine…</p>
             </div>
         )
     }
@@ -133,28 +133,39 @@ export default function Settings() {
 
     return (
         <div className={cn('relative flex flex-col w-screen h-screen gap-0 overflow-hidden')}>
+            <div
+                className={cn(
+                    'absolute top-0 left-0 z-10 flex items-center w-56 px-5 h-16 pointer-events-none',
+                    platform() === 'macos' && 'top-7'
+                )}
+            >
+                <SatoruLockup size="sm" />
+            </div>
             <Tabs
                 aria-label="Options"
                 isVertical={true}
                 variant="light"
                 destroyInactiveTabPanel={false}
                 disableAnimation={true}
-                className="flex-shrink-0 h-screen px-2 py-4 border-r w-52 dark:bg-transparent bg-content2 border-divider dark:border-neutral-700"
+                className="flex-shrink-0 h-screen px-3 pb-16 border-r w-56 bg-content1 border-divider"
                 classNames={{
-                    tabList: 'w-full gap-3' + (platform() === 'macos' ? ' pt-6' : ''),
-                    tab: 'h-14 justify-start rounded-large',
-                    tabContent: 'pl-8',
+                    tabList: cn('w-full gap-0.5 pt-16', platform() === 'macos' && 'pt-24'),
+                    tab: 'h-9 justify-start px-3 rounded-medium',
+                    cursor: 'bg-content3 shadow-none rounded-medium',
+                    tabContent: cn(
+                        'text-foreground-500 group-data-[hover=true]:text-foreground',
+                        'group-data-[selected=true]:text-foreground group-data-[selected=true]:[&_svg]:text-primary'
+                    ),
                 }}
-                size="lg"
+                size="md"
                 defaultSelectedKey={defaultSelectedTab}
-                color="primary"
                 radius="sm"
             >
                 <Tab
                     key="general"
                     title={
-                        <div className="flex items-center gap-2">
-                            <CogIcon className="w-5 h-5" />
+                        <div className="flex items-center gap-2.5 font-medium">
+                            <CogIcon className="size-4" />
                             <span>General</span>
                         </div>
                     }
@@ -166,8 +177,8 @@ export default function Settings() {
                 <Tab
                     key="toolbar"
                     title={
-                        <div className="flex items-center gap-2">
-                            <KeyboardIcon className="w-5 h-5" />
+                        <div className="flex items-center gap-2.5 font-medium">
+                            <KeyboardIcon className="size-4" />
                             <span>Toolbar</span>
                         </div>
                     }
@@ -179,8 +190,8 @@ export default function Settings() {
                 <Tab
                     key="remotes"
                     title={
-                        <div className="flex items-center gap-2">
-                            <ServerIcon className="w-5 h-5" />
+                        <div className="flex items-center gap-2.5 font-medium">
+                            <ServerIcon className="size-4" />
                             <span>Remotes</span>
                         </div>
                     }
@@ -192,8 +203,8 @@ export default function Settings() {
                 <Tab
                     key="hosts"
                     title={
-                        <div className="flex items-center gap-2">
-                            <GlobeIcon className="w-5 h-5" />
+                        <div className="flex items-center gap-2.5 font-medium">
+                            <GlobeIcon className="size-4" />
                             <span>Hosts</span>
                         </div>
                     }
@@ -218,8 +229,8 @@ export default function Settings() {
                             className="max-w-48"
                             offset={90}
                         >
-                            <div className="flex items-center gap-2">
-                                <CodeIcon className="w-5 h-5" />
+                            <div className="flex items-center gap-2.5 font-medium">
+                                <CodeIcon className="size-4" />
                                 <span>Config</span>
                             </div>
                         </Tooltip>
@@ -246,8 +257,8 @@ export default function Settings() {
                         //     className="max-w-48"
                         //     offset={97}
                         // >
-                        <div className="flex items-center gap-2">
-                            <SatelliteDishIcon className="w-5 h-5" />
+                        <div className="flex items-center gap-2.5 font-medium">
+                            <SatelliteDishIcon className="size-4" />
                             <span>Proxy</span>
                         </div>
                         // </Tooltip>
@@ -273,8 +284,8 @@ export default function Settings() {
                             className="max-w-48"
                             offset={90}
                         >
-                            <div className="flex items-center gap-2">
-                                <TabletSmartphoneIcon className="w-5 h-5" />
+                            <div className="flex items-center gap-2.5 font-medium">
+                                <TabletSmartphoneIcon className="size-4" />
                                 <span>Mobile</span>
                             </div>
                         </Tooltip>
@@ -287,8 +298,8 @@ export default function Settings() {
                 <Tab
                     key="license"
                     title={
-                        <div className="flex items-center gap-2">
-                            <MedalIcon className="w-5 h-5" />
+                        <div className="flex items-center gap-2.5 font-medium">
+                            <MedalIcon className="size-4" />
                             <span>License</span>
                         </div>
                     }
@@ -300,8 +311,8 @@ export default function Settings() {
                 <Tab
                     key="about"
                     title={
-                        <div className="flex items-center gap-2">
-                            <InfoIcon className="w-5 h-5" />
+                        <div className="flex items-center gap-2.5 font-medium">
+                            <InfoIcon className="size-4" />
                             <span>About</span>
                         </div>
                     }
@@ -311,20 +322,23 @@ export default function Settings() {
                     <AboutSection />
                 </Tab>
             </Tabs>
-            {!isLocalHost && (
-                <div className="absolute left-0 flex flex-col justify-center h-6 border-r w-52 bottom-12 bg-gradient-to-r from-primary-300 to-primary-400 border-divider dark:border-neutral-700">
-                    <p className="text-xs text-center text-foreground">
-                        Connected to {currentHost?.name}
-                    </p>
-                </div>
-            )}
-            <div className="absolute bottom-0 left-0 flex flex-col h-12 gap-4 p-4 border-t border-r w-52 bg-content3 dark:bg-content1 border-divider dark:border-neutral-700">
-                <p
-                    className="text-[10px] text-center text-neutral-500 hover:text-neutral-400 cursor-pointer"
-                    onClick={() => openUrl('https://github.com/rclone-ui/rclone-ui')}
-                >
-                    UI v{uiVersion}, CLI v{cliVersion}
-                </p>
+            <div className="absolute bottom-0 left-0 flex flex-col justify-center w-56 h-16 gap-1 px-5 border-t border-r bg-content1 border-divider">
+                <span className="flex items-center gap-2 text-tiny text-foreground-600">
+                    <span
+                        className={cn(
+                            'size-1.5 rounded-full',
+                            isLocalHost || !currentHost ? 'bg-success' : 'bg-primary animate-tally'
+                        )}
+                    />
+                    <span className="truncate">
+                        {isLocalHost || !currentHost
+                            ? 'This computer'
+                            : `Connected to ${currentHost.name}`}
+                    </span>
+                </span>
+                <span className="font-mono text-[10px] text-foreground-400">
+                    v{uiVersion} · engine {cliVersion ?? '…'}
+                </span>
             </div>
         </div>
     )

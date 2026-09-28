@@ -1,61 +1,42 @@
-import { Button } from '@heroui/react'
+import { Button, cn } from '@heroui/react'
 import { invoke } from '@tauri-apps/api/core'
 import { getCurrentWindow } from '@tauri-apps/api/window'
-import { openUrl } from '@tauri-apps/plugin-opener'
 import { platform } from '@tauri-apps/plugin-os'
-import confetti from 'canvas-confetti'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ChevronRightIcon } from 'lucide-react'
+import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
+import type React from 'react'
 import { useCallback, useMemo, useState } from 'react'
+import { SatoruLockup } from '../components/brand/logo'
+
+const SHORTCUT = platform() === 'macos' ? '⌘ ⇧ /' : 'Ctrl Shift /'
 
 const SLIDES = [
     {
-        title: 'Welcome to Rclone UI',
+        scene: 'Загрузили',
+        title: 'Облако как обычный диск',
         description:
-            'All the power of rclone — combined with a battle-tested interface that gets out of your way, and right back in when needed.',
-        image: '/banner.png',
+            'Подключите облако как диск в системе: папки проекта видны в Finder и Проводнике, их можно открыть из любой программы.',
+        where: 'Mount',
     },
     {
-        title: 'Schedule Tasks',
+        scene: 'Разложили',
+        title: 'Большие файлы — целиком',
         description:
-            'Set it and forget it! Schedule any task to run automatically whenever you want. Perfect for hands-free backups, regular syncs & everything in between.',
-        image: '/onboarding/schedules.png',
-        className: 'px-10',
+            'Копирование и синхронизация папок без ограничения на размер одного файла. Исходник на 200 ГиБ передаётся одним куском, без нарезки на части.',
+        where: 'Copy · Sync',
     },
     {
-        title: 'Templates',
+        scene: 'Сохранили',
+        title: 'Архив по расписанию',
         description:
-            'Use templates to store reusable flags that you often need. Quickly create templates by pasting your existing CLI commands.',
-        image: '/onboarding/templates.png',
-        link: {
-            label: 'Browse gallery',
-            url: 'https://rcloneui.com/templates/',
-        },
-        className: 'w-80',
+            'Задайте расписание один раз — папка проекта будет уезжать в облако сама, например ночью, когда канал свободен.',
+        where: 'Schedules',
     },
     {
-        title: 'Remote Control',
-        description:
-            'Control rclone instances on other machines straight from your current device. No vendor lock, custom docker setups, or shoddy solutions.',
-        image: '/onboarding/remote.png',
-    },
-    {
-        title: 'Private & Open Source',
-        description:
-            'RCUI is 100% private and open source. No tracking, no ads, no nonsense. You can rest assured that your data never leaves your device.',
-        image: '/onboarding/github.png',
-        className: 'w-full pt-24',
-    },
-    {
-        title: 'Coming to phones & tablets near you!',
-        description:
-            'Rclone UI Mobile is right around the corner. The launch is scheduled at 2,000 stars on GitHub. We guarantee it will be worth it!',
-        image: '/onboarding/mobile.png',
-        link: {
-            label: 'Give it a ⭐️',
-            url: 'https://github.com/rclone-ui/rclone-ui',
-        },
-        className: 'pt-48 w-96',
+        scene: 'Начали',
+        title: 'Всё — из командной панели',
+        description: `Нажмите ${SHORTCUT} в любом приложении, начните печатать название папки или действия — и выберите нужное с клавиатуры.`,
+        where: SHORTCUT,
     },
 ] as const
 
@@ -82,23 +63,8 @@ export default function Onboarding() {
         await currentWindow.setAlwaysOnTop(false)
         setIsFinishing(true)
 
-        const duration = 2500
-
-        confetti({
-            particleCount: 150,
-            spread: 100,
-            origin: { x: 0.5, y: 0.8 },
-            gravity: 0.8,
-            ticks: 300,
-            startVelocity: 45,
-            colors: ['#ff6b6b', '#4ecdc4', '#ffe66d', '#95e1d3', '#f38181'],
-            shapes: ['square', 'circle', 'star'],
-            scalar: 1.1,
-            drift: 0,
-        })
-
         await invoke('show_toolbar')
-        await new Promise((resolve) => setTimeout(resolve, duration * 2))
+        await new Promise((resolve) => setTimeout(resolve, 400))
         await currentWindow.hide()
         await currentWindow.destroy()
     }, [])
@@ -118,110 +84,122 @@ export default function Onboarding() {
         setCurrentSlide((prev) => prev - 1)
     }, [isFirstSlide])
 
-    const imageVariants = useMemo(
-        () => ({
-            enter: (ctx: { dir: number; slide: number }) => {
-                // Entering slide 0 (coming back from slide 1): fade in with scale + rotate
-                if (ctx.dir < 0 && ctx.slide === 0) {
-                    return { x: 0, opacity: 0, scale: 1.15, rotate: -3 }
-                }
-                return {
-                    x: ctx.dir > 0 ? 80 : -80,
-                    opacity: 0,
-                    scale: 1,
-                    rotate: 0,
-                }
-            },
-            center: {
-                x: 0,
-                opacity: 1,
-                scale: 1,
-                rotate: 0,
-            },
-            exit: (ctx: { dir: number; slide: number }) => {
-                // Exiting slide 0 (going to slide 1): fade out with scale + rotate
-                if (ctx.dir > 0 && ctx.slide === 1) {
-                    return { x: 0, opacity: 0, scale: 1.15, rotate: 3 }
-                }
-                return {
-                    x: ctx.dir > 0 ? -80 : 80,
-                    opacity: 0,
-                    scale: 1,
-                    rotate: 0,
-                }
-            },
-        }),
-        []
-    )
+    const take = String(currentSlide + 1).padStart(2, '0')
+    const total = String(SLIDES.length).padStart(2, '0')
 
     return (
-        <div className="flex flex-col items-center justify-center w-full h-screen p-0.5 bg-transparent">
+        <div
+            lang="ru"
+            className="flex flex-col items-center justify-center w-full h-screen p-0.5 bg-transparent"
+        >
             <div
-                className={`w-full h-full bg-content1 rounded-large overflow-hidden transition-opacity duration-300 ${isFinishing ? 'opacity-0' : 'opacity-100'}`}
+                className={cn(
+                    'flex flex-col w-full h-full overflow-hidden border bg-content1 border-divider rounded-large transition-opacity duration-300',
+                    isFinishing ? 'opacity-0' : 'opacity-100'
+                )}
             >
-                <div className="flex flex-col items-center justify-center overflow-hidden h-3/5 bg-gradient-to-b from-primary/90 dark:from-primary/10 to-transparent">
-                    <AnimatePresence mode="wait" custom={{ dir: direction, slide: currentSlide }}>
-                        <motion.img
+                {/* Slate: the clapper sticks and the fields a 2nd AC writes before every take */}
+                <div
+                    aria-hidden="true"
+                    className="h-3 shrink-0 bg-[repeating-linear-gradient(135deg,hsl(var(--heroui-content4))_0_14px,transparent_14px_28px)]"
+                />
+                <div className="grid grid-cols-[1.4fr_1fr_1fr_1fr] border-b border-divider shrink-0">
+                    <SlateField label="Проект">
+                        <SatoruLockup size="sm" />
+                    </SlateField>
+                    <SlateField label="Сцена">
+                        <span className="font-mono">
+                            {take}
+                            <span className="text-foreground-400">/{total}</span>
+                        </span>
+                    </SlateField>
+                    <SlateField label="Этап">{slide.scene}</SlateField>
+                    <SlateField label="Где" last={true}>
+                        <span className="font-mono text-small">{slide.where}</span>
+                    </SlateField>
+                </div>
+
+                <div className="relative flex flex-col justify-center flex-1 px-10 overflow-hidden">
+                    <AnimatePresence mode="wait" custom={direction}>
+                        <motion.div
                             key={currentSlide}
-                            src={slide.image}
-                            alt={slide.title}
-                            custom={{ dir: direction, slide: currentSlide }}
-                            variants={imageVariants}
-                            initial="enter"
-                            animate="center"
-                            exit="exit"
-                            transition={{
-                                x: { type: 'spring', stiffness: 300, damping: 30 },
-                                opacity: { duration: 0.2 },
-                                scale: { type: 'spring', stiffness: 300, damping: 30 },
-                                rotate: { type: 'spring', stiffness: 300, damping: 30 },
-                            }}
-                            className={'className' in slide ? slide.className : ''}
-                        />
+                            custom={direction}
+                            initial={{ opacity: 0, x: direction * 24 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: direction * -24 }}
+                            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+                            className="flex flex-col gap-4 max-w-[600px]"
+                        >
+                            <h1 className="text-[40px] leading-[1.05] font-semibold tracking-[-0.03em]">
+                                {slide.title}
+                            </h1>
+                            <p className="text-base leading-relaxed text-foreground-500">
+                                {slide.description}
+                            </p>
+                        </motion.div>
                     </AnimatePresence>
                 </div>
-                <div className="flex flex-col justify-between pt-4 pb-5 pl-6 pr-7 h-2/5 bg-content1">
-                    <div className="flex flex-col max-w-[690px] gap-2">
-                        <p className="text-2xl font-medium">{slide.title}</p>
-                        <p className=" text-foreground-500">{slide.description}</p>
+
+                <div className="flex items-center justify-between h-20 px-6 border-t shrink-0 border-divider bg-content2">
+                    <div
+                        className="flex items-center gap-1.5"
+                        aria-label={`Шаг ${currentSlide + 1} из ${SLIDES.length}`}
+                    >
+                        {SLIDES.map((item, index) => (
+                            <span
+                                key={item.title}
+                                className={cn(
+                                    'h-1 rounded-full transition-all duration-300',
+                                    index === currentSlide ? 'w-6 bg-primary' : 'w-3 bg-content4'
+                                )}
+                            />
+                        ))}
                     </div>
-                    <div className="flex flex-row items-center justify-between">
-                        {isFirstSlide ? (
-                            <Button color="primary" onPress={handleNext}>
-                                Get Started
+                    <div className="flex flex-row gap-2">
+                        {!isFirstSlide && (
+                            <Button
+                                variant="light"
+                                radius="sm"
+                                onPress={handleBack}
+                                startContent={<ChevronLeftIcon className="size-4" />}
+                                className="gap-1"
+                            >
+                                Назад
                             </Button>
-                        ) : (
-                            <>
-                                <Button variant="flat" onPress={handleBack}>
-                                    Back
-                                </Button>
-                                <div className="flex flex-row gap-2">
-                                    {'link' in slide && (
-                                        <Button
-                                            variant="faded"
-                                            onPress={() => openUrl(slide.link.url)}
-                                        >
-                                            {slide.link.label}
-                                        </Button>
-                                    )}
-                                    <Button
-                                        color="primary"
-                                        onPress={handleNext}
-                                        endContent={
-                                            isLastSlide ? undefined : (
-                                                <ChevronRightIcon className="size-4 mt-0.5" />
-                                            )
-                                        }
-                                        className="gap-0"
-                                    >
-                                        {isLastSlide ? 'START' : 'Next'}
-                                    </Button>
-                                </div>
-                            </>
                         )}
+                        <Button
+                            color="primary"
+                            radius="sm"
+                            onPress={handleNext}
+                            endContent={
+                                isLastSlide ? undefined : <ChevronRightIcon className="size-4" />
+                            }
+                            className="gap-1 px-5 font-medium"
+                        >
+                            {isFirstSlide ? 'Начать' : isLastSlide ? 'Открыть панель' : 'Дальше'}
+                        </Button>
                     </div>
                 </div>
             </div>
+        </div>
+    )
+}
+
+function SlateField({
+    label,
+    children,
+    last = false,
+}: {
+    label: string
+    children: React.ReactNode
+    last?: boolean
+}) {
+    return (
+        <div className={cn('flex flex-col gap-1 px-5 py-3', !last && 'border-r border-divider')}>
+            <span className="text-[10px] font-medium uppercase tracking-[0.12em] text-foreground-400">
+                {label}
+            </span>
+            <span className="flex items-center font-medium h-6 text-foreground">{children}</span>
         </div>
     )
 }

@@ -1,9 +1,9 @@
+import { SatoruLockup } from '../components/brand/logo'
+
 function Home() {
     return (
-        <main className="container bg-blue-500">
-            <div className="flex flex-col">
-                <h1>Rclone UI</h1>
-            </div>
+        <main className="flex items-center justify-center w-screen h-screen bg-background">
+            <SatoruLockup size="lg" />
         </main>
     )
 }

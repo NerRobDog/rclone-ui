@@ -1,3 +1,5 @@
+import '@fontsource-variable/inter'
+import '@fontsource-variable/jetbrains-mono'
 import './global.css'
 import { HeroUIProvider } from '@heroui/react'
 import { QueryClientProvider } from '@tanstack/react-query'
@@ -192,7 +194,7 @@ function ThemeProvider({ children }: { children: React.ReactNode }) {
                 window.location?.pathname.startsWith('/startup') ||
                 window.location?.pathname.startsWith('/onboarding')
                     ? undefined
-                    : 'bg-transparent dark:bg-[#121212] overflow-scroll overscroll-y-none'
+                    : 'bg-background text-foreground overflow-scroll overscroll-y-none'
             }
         >
             {children}

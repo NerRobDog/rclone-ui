@@ -1,71 +1,23 @@
-import { Button, Divider } from '@heroui/react'
+import { Button, Kbd } from '@heroui/react'
 import { invoke } from '@tauri-apps/api/core'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { platform } from '@tauri-apps/plugin-os'
 import { exit } from '@tauri-apps/plugin-process'
 import { AnimatePresence, motion } from 'framer-motion'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 import { openSmallWindow } from '../../lib/window'
 import { useStore } from '../../store/memory'
 import { usePersistedStore } from '../../store/persisted'
-
-const GREET = [
-    'Hello',
-    'こんにちは',
-    'Salut',
-    'Cześć',
-    'Hej',
-    'Bonjour',
-    'Olá',
-    'Ciao',
-    '你好',
-    'Hallo',
-    'Merhaba',
-    'مرحباً',
-]
-
-const WAIT = [
-    'Just a moment',
-    '少々お待ちください',
-    'Un moment',
-    'Chwileczkę',
-    'Ett ögonblick',
-    'Juste un instant',
-    'Só um momento',
-    'Un attimo',
-    '请稍等一下',
-    'Einen Moment, bitte',
-    'Bir saniye lütfen',
-    'لحظة من فضلك',
-]
+import StatusPill from '../components/StatusPill'
+import { SatoruLockup } from '../components/brand/logo'
 
 export default function Startup() {
-    const [titleIndex, setTitleIndex] = useState(0)
-
     const startupStatus = useStore((state) => state.startupStatus)
 
     const isError = useMemo(
         () => startupStatus === 'error' || startupStatus === 'fatal',
         [startupStatus]
     )
-
-    useEffect(() => {
-        let intervalId: NodeJS.Timeout | null = null
-        if (startupStatus === 'initializing') {
-            intervalId = setInterval(() => {
-                setTitleIndex((previousIndex) => (previousIndex + 1) % GREET.length)
-            }, 1500)
-        } else if (startupStatus === 'updating') {
-            intervalId = setInterval(() => {
-                setTitleIndex((previousIndex) => (previousIndex + 1) % WAIT.length)
-            }, 2000)
-        }
-        return () => {
-            if (intervalId) {
-                clearInterval(intervalId)
-            }
-        }
-    }, [startupStatus])
 
     // Close window when it loses focus
     useEffect(() => {
@@ -82,202 +34,161 @@ export default function Startup() {
         }
     }, [])
 
+    const onStart = useCallback(async () => {
+        const currentWindow = getCurrentWindow()
+
+        await currentWindow.hide()
+
+        if (usePersistedStore.getState().acknowledgements.includes('onboarding')) {
+            await invoke('show_toolbar')
+        } else {
+            usePersistedStore.setState((prev) => ({
+                acknowledgements: [...prev.acknowledgements, 'onboarding'],
+            }))
+            await openSmallWindow({
+                name: 'Onboarding',
+                url: '/onboarding',
+            })
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 690))
+
+        await currentWindow.destroy()
+    }, [])
+
+    const onErrorAction = useCallback(async () => {
+        if (startupStatus === 'error') {
+            await getCurrentWindow().hide()
+            await getCurrentWindow().destroy()
+        } else {
+            await exit(0)
+        }
+    }, [startupStatus])
+
+    const isReady = startupStatus === 'initialized' || startupStatus === 'updated'
+    const isBusy = startupStatus === 'initializing' || startupStatus === 'updating'
+    const shortcut = platform() === 'macos' ? ['⌘', '⇧', '/'] : ['Ctrl', 'Shift', '/']
+
+    const copy = isError
+        ? {
+              status: 'Ошибка',
+              title: 'Не удалось запустить',
+              body: 'Попробуйте ещё раз чуть позже. Если ошибка повторится, журнал работы лежит в настройках, в разделе About.',
+          }
+        : startupStatus === 'updating'
+          ? {
+                status: 'Обновление',
+                title: 'Обновляем движок',
+                body: 'Это займёт меньше минуты. Ваши файлы и настройки остаются на месте.',
+            }
+          : startupStatus === 'updated'
+            ? {
+                  status: 'Готово',
+                  title: 'Движок обновлён',
+                  body: 'Спасибо, что подождали. Можно продолжать работу.',
+              }
+            : isReady
+              ? {
+                    status: 'Готово',
+                    title: 'Облако подключено',
+                    body: 'Командная панель открывается сочетанием клавиш — из любого приложения, в том числе из монтажной программы.',
+                }
+              : {
+                    status: 'Запуск',
+                    title: 'Подключаемся к облаку',
+                    body: 'Проверяем соединение и готовим рабочее пространство.',
+                }
+
     return (
-        <div className="flex flex-col h-screen rounded-2xl bg-content1">
-            <img src="/banner.png" alt="Rclone UI" className="w-full h-auto p-5" />
+        <div
+            lang="ru"
+            className="flex flex-col h-screen overflow-hidden border rounded-large bg-content1 border-divider"
+        >
+            <header className="flex items-center justify-between px-7 pt-6">
+                <SatoruLockup size="md" />
+                <StatusPill
+                    label={copy.status}
+                    tone={isError ? 'danger' : isReady ? 'success' : 'live'}
+                    pulse={isBusy}
+                />
+            </header>
 
-            <Divider />
-
-            <div className="flex flex-col w-full h-full justify-evenly">
-                <div className="flex flex-col items-center w-full gap-8 overflow-visible">
-                    <AnimatePresence mode="wait">
-                        {isError && (
-                            <motion.p
-                                key="error"
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                                className="ml-2 text-2xl"
-                            >
-                                Could not complete the operation, please try again later.
-                            </motion.p>
+            <div className="flex flex-col justify-center flex-1 gap-4 px-7">
+                <AnimatePresence mode="wait">
+                    <motion.div
+                        key={copy.title}
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -8 }}
+                        transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+                        className="flex flex-col gap-3 max-w-[560px]"
+                    >
+                        <h1 className="text-[40px] leading-[1.05] font-semibold tracking-[-0.03em]">
+                            {copy.title}
+                        </h1>
+                        <p className="text-base leading-relaxed text-foreground-500">{copy.body}</p>
+                        {isReady && (
+                            <div className="flex items-center gap-1.5 pt-2">
+                                {shortcut.map((key) => (
+                                    <Kbd
+                                        key={key}
+                                        classNames={{
+                                            base: 'min-w-8 h-8 justify-center bg-content3 shadow-none border border-divider font-mono text-sm',
+                                        }}
+                                    >
+                                        {key}
+                                    </Kbd>
+                                ))}
+                                <span className="ml-2 text-small text-foreground-500">
+                                    командная панель
+                                </span>
+                            </div>
                         )}
-                        {startupStatus === 'initialized' && (
-                            <motion.p
-                                key="initialized"
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                                className="ml-2 text-2xl"
-                            >
-                                Use the {platform() === 'macos' ? '⌘' : 'Ctrl'} + Shift + / shortcut
-                                to open the Toolbar!
-                            </motion.p>
-                        )}
-                        {startupStatus === 'updated' && (
-                            <motion.p
-                                key="updated"
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                                className="ml-2 text-2xl"
-                            >
-                                Rclone has just been updated, thanks for waiting!
-                            </motion.p>
-                        )}
-                        {startupStatus === 'initializing' && (
-                            <motion.p
-                                key="initializing"
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                                className="ml-2 text-3xl"
-                            >
-                                <span
-                                    key={titleIndex}
-                                    className="inline-block align-middle animate-fade-in-up"
-                                >
-                                    {GREET[titleIndex]}
-                                </span>{' '}
-                                <span className="inline-block align-middle">👋</span>
-                            </motion.p>
-                        )}
-                        {startupStatus === 'updating' && (
-                            <motion.p
-                                key="updating"
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                                className="ml-2 text-3xl"
-                            >
-                                <span
-                                    key={titleIndex}
-                                    className="inline-block align-middle animate-fade-in-up"
-                                >
-                                    {WAIT[titleIndex]}
-                                </span>{' '}
-                                <span className="inline-block align-middle">👋</span>
-                            </motion.p>
-                        )}
-                    </AnimatePresence>
-                </div>
-                <div className="flex flex-col items-center w-full bg-red-500/0">
-                    <AnimatePresence mode="wait">
-                        {(startupStatus === 'initialized' || startupStatus === 'updated') && (
-                            <motion.div
-                                key="start-button"
-                                className="w-full max-w-md"
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.95 }}
-                            >
-                                <Button
-                                    className="w-full py-8 text-large"
-                                    variant="shadow"
-                                    color="primary"
-                                    size="lg"
-                                    onPress={async () => {
-                                        const currentWindow = getCurrentWindow()
-
-                                        await currentWindow.hide()
-
-                                        if (
-                                            usePersistedStore
-                                                .getState()
-                                                .acknowledgements.includes('onboarding')
-                                        ) {
-                                            await invoke('show_toolbar')
-                                        } else {
-                                            usePersistedStore.setState((prev) => ({
-                                                acknowledgements: [
-                                                    ...prev.acknowledgements,
-                                                    'onboarding',
-                                                ],
-                                            }))
-                                            await openSmallWindow({
-                                                name: 'Onboarding',
-                                                url: '/onboarding',
-                                            })
-                                        }
-
-                                        await new Promise((resolve) => setTimeout(resolve, 690))
-
-                                        await currentWindow.destroy()
-                                    }}
-                                >
-                                    TAP TO START
-                                </Button>
-                            </motion.div>
-                        )}
-                        {isError && (
-                            <motion.div
-                                key="error-button"
-                                className="w-full max-w-md"
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.95 }}
-                            >
-                                <Button
-                                    className="w-full py-8 text-large"
-                                    variant="shadow"
-                                    color="primary"
-                                    size="lg"
-                                    onPress={async () => {
-                                        if (startupStatus === 'error') {
-                                            await getCurrentWindow().hide()
-                                            await getCurrentWindow().destroy()
-                                        } else {
-                                            await exit(0)
-                                        }
-                                    }}
-                                >
-                                    {startupStatus === 'error' ? 'OK' : 'QUIT'}
-                                </Button>
-                            </motion.div>
-                        )}
-                        {startupStatus === 'initializing' && (
-                            <motion.p
-                                key="initializing"
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.95 }}
-                                className="uppercase text-small"
-                            >
-                                <motion.span
-                                    animate={{ opacity: [1, 0.5, 1] }}
-                                    transition={{
-                                        repeat: Number.POSITIVE_INFINITY,
-                                        duration: 4,
-                                        ease: 'easeInOut',
-                                    }}
-                                >
-                                    Rclone is initializing
-                                </motion.span>
-                            </motion.p>
-                        )}
-                        {startupStatus === 'updating' && (
-                            <motion.p
-                                key="updating"
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.95 }}
-                                className="uppercase text-small"
-                            >
-                                <motion.span
-                                    animate={{ opacity: [1, 0.5, 1] }}
-                                    transition={{
-                                        repeat: Number.POSITIVE_INFINITY,
-                                        duration: 4,
-                                        ease: 'easeInOut',
-                                    }}
-                                >
-                                    Rclone is updating
-                                </motion.span>
-                            </motion.p>
-                        )}
-                    </AnimatePresence>
-                </div>
+                    </motion.div>
+                </AnimatePresence>
             </div>
+
+            <footer className="flex items-center justify-between h-20 px-7 border-t border-divider bg-content2">
+                <p className="text-tiny text-foreground-400">
+                    Хранилище для видеопродакшена и студий подкастов
+                </p>
+                <AnimatePresence mode="wait">
+                    {isReady && (
+                        <motion.div
+                            key="start"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                        >
+                            <Button
+                                color="primary"
+                                radius="sm"
+                                className="px-6 font-medium"
+                                onPress={onStart}
+                            >
+                                Начать работу
+                            </Button>
+                        </motion.div>
+                    )}
+                    {isError && (
+                        <motion.div
+                            key="error"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                        >
+                            <Button
+                                variant="bordered"
+                                radius="sm"
+                                className="px-6"
+                                onPress={onErrorAction}
+                            >
+                                {startupStatus === 'error' ? 'Понятно' : 'Выйти'}
+                            </Button>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </footer>
         </div>
     )
 }

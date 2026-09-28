@@ -9,6 +9,7 @@ import { fetchMountList, fetchServeList } from '../../lib/rclone/api'
 import rclone from '../../lib/rclone/client'
 import { openWindow } from '../../lib/window'
 import { type ResolvedToolbarResult, runToolbarEngine } from '../../toolbar/engine'
+import { SatoruMark } from '../components/brand/logo'
 
 const toolbarWindow = getCurrentWebviewWindow()
 const isWindows = platform() === 'windows'
@@ -50,8 +51,11 @@ function Shortcut({ index, isActive }: { index: number; isActive: boolean }) {
         <Kbd
             keys={[shortcutModifierKey]}
             classNames={{
-                base: cn('shadow-none bg-content3', isActive && 'bg-content2'),
-                content: 'text-xs',
+                base: cn(
+                    'shadow-none border border-divider bg-content2 text-foreground-500',
+                    isActive && 'bg-content1 text-foreground-600'
+                ),
+                content: 'text-xs font-mono',
                 abbr: 'text-xs',
             }}
         >
@@ -465,18 +469,15 @@ export default function Toolbar() {
         <div className="flex flex-col items-center justify-center w-full h-full">
             <div
                 ref={activeAreaRef}
-                className="flex border-divider border flex-col items-center justify-center bg-content2/[0.97] w-[700px] rounded-large"
+                className="flex flex-col items-center justify-center overflow-hidden border shadow-2xl border-divider bg-content1 w-[700px] rounded-large shadow-black/40"
             >
                 <div
                     data-tauri-drag-region={true}
                     className="flex flex-row items-center w-full overflow-hidden h-14"
                 >
-                    <img
-                        data-tauri-drag-region={true}
-                        src="/icon.png"
-                        alt="Icon"
-                        className="object-contain ml-3 mr-2 size-6 invert dark:invert-0"
-                    />
+                    <span data-tauri-drag-region={true} className="flex ml-4 mr-3 shrink-0">
+                        <SatoruMark variant="glyph" className="size-6" />
+                    </span>
                     <input
                         ref={inputRef}
                         data-tauri-drag-region={true}
@@ -484,8 +485,8 @@ export default function Toolbar() {
                         autoComplete="off"
                         autoCorrect="off"
                         spellCheck="false"
-                        className="w-full h-full pb-0.5 text-2xl bg-transparent text-foreground focus:outline-none"
-                        placeholder="Search commands, remotes, or paste a URL"
+                        className="w-full h-full pb-0.5 text-xl font-medium tracking-[-0.01em] bg-transparent text-foreground placeholder:text-foreground-400 focus:outline-none"
+                        placeholder="Search actions and storage, or paste a link"
                         value={searchString}
                         onChange={(e) => setSearchString(e.target.value)}
                         onKeyDown={handleKeyDown}
@@ -494,7 +495,7 @@ export default function Toolbar() {
 
                 <Divider />
 
-                <ScrollShadow className="h-[400px] w-full p-2" onMouseMove={handleMouseMove}>
+                <ScrollShadow className="h-[400px] w-full p-1.5" onMouseMove={handleMouseMove}>
                     {engineResults.map((result, index) => {
                         const isActive = index === highlightedIndex
                         const elementId = `tb-result-${result.id.replace(ELEMENT_ID_REGEX, '-')}`
@@ -507,14 +508,15 @@ export default function Toolbar() {
                                     onMouseDown={(event) => event.preventDefault()}
                                     onClick={() => handleExecute(result)}
                                     className={cn(
-                                        'flex w-full flex-col gap-1 rounded-small px-2.5 py-2 text-left transition-colors ',
+                                        'relative flex w-full flex-col gap-0.5 rounded-medium pl-4 pr-2.5 py-2 text-left transition-colors',
+                                        'before:absolute before:left-1.5 before:top-2.5 before:bottom-2.5 before:w-[3px] before:rounded-full before:transition-colors',
                                         isActive
-                                            ? 'bg-primary/75 dark:bg-primary/50'
-                                            : 'hover:bg-content2/60'
+                                            ? 'bg-content3 before:bg-primary'
+                                            : 'hover:bg-content2 before:bg-transparent'
                                     )}
                                 >
                                     <div className="flex items-center justify-between gap-2">
-                                        <span className="font-medium text-medium">
+                                        <span className="font-medium text-medium text-foreground">
                                             {result.label}
                                         </span>
                                         <Shortcut index={index} isActive={isActive} />
@@ -523,22 +525,13 @@ export default function Toolbar() {
                                         <span
                                             className={cn(
                                                 'text-small text-foreground-500',
-                                                isActive && 'text-primary-800'
+                                                isActive && 'text-foreground-600'
                                             )}
                                         >
                                             {result.description}
                                         </span>
                                     ) : null}
                                 </button>
-                                {index !== engineResults.length - 1 && (
-                                    <div
-                                        className={cn(
-                                            'ml-2 border-b border-divider h-0.5 rounded-small transition-opacity',
-                                            (isActive || highlightedIndex === index + 1) &&
-                                                'opacity-0 duration-100'
-                                        )}
-                                    />
-                                )}
                             </div>
                         )
                     })}

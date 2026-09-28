@@ -15,7 +15,7 @@ export default function BaseSection({
         <div className="flex flex-col gap-8">
             <div
                 className={cn(
-                    'sticky top-0 flex flex-col z-50 bg-white/50 dark:bg-[#12121299] backdrop-blur-lg',
+                    'sticky top-0 flex flex-col z-50 bg-background border-b border-divider',
                     platform() === 'macos' ? 'pt-2' : undefined
                 )}
             >

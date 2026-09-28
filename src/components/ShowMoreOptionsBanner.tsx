@@ -30,7 +30,7 @@ export default function ShowMoreOptionsBanner() {
 
     return (
         <div
-            className="absolute flex flex-col items-center justify-center w-full gap-1 bg-white dark:bg-[#121212] bottom-0 group py-2"
+            className="absolute flex flex-col items-center justify-center w-full gap-1 bg-background bottom-0 group py-2"
             onClick={() => {
                 startTransition(() => {
                     usePersistedStore.setState((prev) => ({

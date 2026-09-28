@@ -380,7 +380,7 @@ export default function ConfigSection() {
                                     } else {
                                         if (!licenseValid) {
                                             await message(
-                                                'Community version does not support syncing configs.\n\nIf you do not wish to update it outside of Rclone UI, you can simply import.',
+                                                'Community version does not support syncing configs.\n\nIf you do not wish to update it outside of satoru.link, you can simply import.',
                                                 {
                                                     title: 'Missing license',
                                                     kind: 'error',

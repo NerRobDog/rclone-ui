@@ -132,7 +132,7 @@ export default function RemotesSection() {
                         onPress={() => setCreatingDrawerOpen(true)}
                         color="primary"
                         data-focus-visible="false"
-                        variant="shadow"
+                        variant="solid"
                         size="lg"
                     >
                         Create Remote

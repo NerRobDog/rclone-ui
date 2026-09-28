@@ -256,13 +256,7 @@ export default function Bisync() {
                     <AccordionItem
                         key="bisync"
                         startContent={
-                            <Avatar
-                                className="bg-lime-500"
-                                radius="lg"
-                                fallback={
-                                    <DiamondPercentIcon className="text-success-foreground" />
-                                }
-                            />
+                            <Avatar color="primary" radius="lg" fallback={<DiamondPercentIcon />} />
                         }
                         indicator={<DiamondPercentIcon />}
                         title="Bisync"
@@ -385,7 +379,11 @@ export default function Bisync() {
                     <AccordionItem
                         key="filters"
                         startContent={
-                            <Avatar color="danger" radius="lg" fallback={<FilterIcon />} />
+                            <Avatar
+                                className="bg-content3 text-foreground-600"
+                                radius="lg"
+                                fallback={<FilterIcon />}
+                            />
                         }
                         indicator={<FilterIcon />}
                         title="Filters"
@@ -403,7 +401,11 @@ export default function Bisync() {
                     <AccordionItem
                         key="cron"
                         startContent={
-                            <Avatar color="warning" radius="lg" fallback={<ClockIcon />} />
+                            <Avatar
+                                className="bg-content3 text-foreground-600"
+                                radius="lg"
+                                fallback={<ClockIcon />}
+                            />
                         }
                         indicator={<ClockIcon />}
                         title="Cron"
@@ -413,7 +415,11 @@ export default function Bisync() {
                     <AccordionItem
                         key="config"
                         startContent={
-                            <Avatar color="default" radius="lg" fallback={<WrenchIcon />} />
+                            <Avatar
+                                className="bg-content3 text-foreground-600"
+                                radius="lg"
+                                fallback={<WrenchIcon />}
+                            />
                         }
                         indicator={<WrenchIcon />}
                         title="Config"
@@ -434,7 +440,7 @@ export default function Bisync() {
                             key={'remotes'}
                             startContent={
                                 <Avatar
-                                    className="bg-fuchsia-500"
+                                    className="bg-content3 text-foreground-600"
                                     radius="lg"
                                     fallback={<ServerIcon />}
                                 />
@@ -638,7 +644,7 @@ export default function Bisync() {
                         <Button
                             size="lg"
                             type="button"
-                            color="primary"
+                            color="default"
                             isIconOnly={true}
                             onPress={() => {
                                 setTimeout(() => scheduleTaskMutation.mutate(), 100)

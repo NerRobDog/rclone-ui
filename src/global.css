@@ -50,7 +50,24 @@ html {
 }
 
 body {
-    /* background-color: red; */
+    font-family: theme("fontFamily.sans");
+    font-feature-settings: "cv11", "ss03";
+    /* Sizes, speeds and timecodes should not jitter while they update. */
+    font-variant-numeric: tabular-nums;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+}
+
+::selection {
+    background: hsl(var(--heroui-primary) / 0.28);
+}
+
+code,
+kbd,
+pre,
+samp {
+    font-family: theme("fontFamily.mono");
 }
 
 /* * {

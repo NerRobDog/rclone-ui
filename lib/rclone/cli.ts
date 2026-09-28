@@ -6,6 +6,7 @@ import { message } from '@tauri-apps/plugin-dialog'
 import { Command } from '@tauri-apps/plugin-shell'
 import { useHostStore } from '../../store/host'
 import type { ConfigFile } from '../../types/config'
+import { PRODUCT_NAME } from '../brand'
 import { getConfigParentFolder } from '../format'
 import { getConfigPath, isInternalRcloneInstalled, isSystemRcloneInstalled } from './common'
 
@@ -22,7 +23,7 @@ export async function promptForConfigPassword(message: string) {
     console.log('[promptForConfigPassword] message:', message)
     try {
         const result = await invoke<string | null>('prompt', {
-            title: 'Rclone UI',
+            title: PRODUCT_NAME,
             message: message.replace(/"/g, '“'),
             default: null,
             sensitive: true,

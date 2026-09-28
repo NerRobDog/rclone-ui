@@ -194,7 +194,11 @@ export default function Purge() {
                     <AccordionItem
                         key="config"
                         startContent={
-                            <Avatar color="default" radius="lg" fallback={<WrenchIcon />} />
+                            <Avatar
+                                className="bg-content3 text-foreground-600"
+                                radius="lg"
+                                fallback={<WrenchIcon />}
+                            />
                         }
                         indicator={<WrenchIcon />}
                         title="Config"
@@ -212,7 +216,11 @@ export default function Purge() {
                     <AccordionItem
                         key="cron"
                         startContent={
-                            <Avatar color="warning" radius="lg" fallback={<ClockIcon />} />
+                            <Avatar
+                                className="bg-content3 text-foreground-600"
+                                radius="lg"
+                                fallback={<ClockIcon />}
+                            />
                         }
                         indicator={<ClockIcon />}
                         title="Cron"
@@ -347,7 +355,7 @@ export default function Purge() {
                         <Button
                             size="lg"
                             type="button"
-                            color="primary"
+                            color="default"
                             isIconOnly={true}
                             onPress={() => {
                                 setTimeout(() => scheduleTaskMutation.mutate(), 100)

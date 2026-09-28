@@ -325,7 +325,11 @@ export default function Copy() {
                         <AccordionItem
                             key="filters"
                             startContent={
-                                <Avatar color="danger" radius="lg" fallback={<FilterIcon />} />
+                                <Avatar
+                                    className="bg-content3 text-foreground-600"
+                                    radius="lg"
+                                    fallback={<FilterIcon />}
+                                />
                             }
                             indicator={<FilterIcon />}
                             title="Filters"
@@ -343,7 +347,11 @@ export default function Copy() {
                         <AccordionItem
                             key="cron"
                             startContent={
-                                <Avatar color="warning" radius="lg" fallback={<ClockIcon />} />
+                                <Avatar
+                                    className="bg-content3 text-foreground-600"
+                                    radius="lg"
+                                    fallback={<ClockIcon />}
+                                />
                             }
                             indicator={<ClockIcon />}
                             title="Cron"
@@ -353,7 +361,11 @@ export default function Copy() {
                         <AccordionItem
                             key="config"
                             startContent={
-                                <Avatar color="default" radius="lg" fallback={<WrenchIcon />} />
+                                <Avatar
+                                    className="bg-content3 text-foreground-600"
+                                    radius="lg"
+                                    fallback={<WrenchIcon />}
+                                />
                             }
                             indicator={<WrenchIcon />}
                             title="Config"
@@ -374,7 +386,7 @@ export default function Copy() {
                                 key={'remotes'}
                                 startContent={
                                     <Avatar
-                                        className="bg-fuchsia-500"
+                                        className="bg-content3 text-foreground-600"
                                         radius="lg"
                                         fallback={<ServerIcon />}
                                     />
@@ -587,7 +599,7 @@ export default function Copy() {
                         <Button
                             size="lg"
                             type="button"
-                            color="primary"
+                            color="default"
                             isIconOnly={true}
                             isLoading={dryRunMutation.isPending}
                             onPress={() => {
@@ -611,7 +623,7 @@ export default function Copy() {
                         <Button
                             size="lg"
                             type="button"
-                            color="primary"
+                            color="default"
                             isIconOnly={true}
                             onPress={() => {
                                 setTimeout(() => scheduleTaskMutation.mutate(), 100)

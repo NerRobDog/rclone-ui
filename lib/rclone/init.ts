@@ -84,7 +84,7 @@ export async function initRclone(args: string[]) {
                     )
                     useStore.setState({ startupStatus: 'error' })
                     const skipping = await ask(
-                        'You are running an outdated version of the CLI that could not be updated.\n\nPlease update manually and restart Rclone UI.',
+                        'You are running an outdated version of the CLI that could not be updated.\n\nPlease update manually and restart satoru.link.',
                         {
                             title: 'Error',
                             kind: 'error',
