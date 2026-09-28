@@ -700,7 +700,8 @@ const actions: ToolbarActionDefinition[] = [
                 await rclone('/operations/cleanup', {
                     params: {
                         query: {
-                            fs: remote,
+                            // without the colon rclone treats the name as a local directory
+                            fs: remote.endsWith(':') ? remote : `${remote}:`,
                             _async: true,
                         },
                     },
