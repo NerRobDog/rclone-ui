@@ -60,7 +60,7 @@ export default function ProxySection() {
         setIsTestingProxy(true)
 
         try {
-            await invoke<string>('test_proxy_connection', { proxy_url: url })
+            await invoke<string>('test_proxy_connection', { proxyUrl: url })
 
             // If test successful, save the proxy URL
             useHostStore.setState((state) => ({
