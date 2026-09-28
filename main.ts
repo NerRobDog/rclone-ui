@@ -495,7 +495,8 @@ async function startRclone() {
             return await exit(0)
         }
 
-        if (payload.code === 143 || payload.code === 1) {
+        // Any non-zero exit is a crash. code is null when killed by a signal (OOM, SIGSEGV).
+        if (payload.code !== 0) {
             Sentry.captureException(new Error('Rclone has crashed'))
             const confirmed = await ask('Rclone has crashed', {
                 title: 'Error',
