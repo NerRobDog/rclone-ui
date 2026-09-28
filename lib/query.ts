@@ -24,6 +24,11 @@ persistQueryClient({
     queryClient,
     persister,
     maxAge: 1000 * 60 * 60 * 24 * 30, // 30 days
+    dehydrateOptions: {
+        // Live transfer state is stale the moment it is written; restoring it only shows wrong data.
+        shouldDehydrateQuery: (query) =>
+            query.state.status === 'success' && query.queryKey[0] !== 'transfers',
+    },
 })
 
 export default queryClient

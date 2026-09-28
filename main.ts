@@ -302,14 +302,8 @@ async function registerRcloneWindowListeners() {
     const shutdown = async (mode: 'quit' | 'relaunch') => {
         // A dead daemon means "no active transfers": don't let a listTransfers throw make quit a
         // silent no-op.
-        const transfers = await queryClient
-            .ensureQueryData({
-                queryKey: ['transfers', 'list', 'all'],
-                queryFn: async () => await listTransfers(),
-                staleTime: 10_000, // 10 seconds
-                gcTime: 60_000, // 1 minute
-            })
-            .catch(() => null)
+        // Ask rclone directly: a cached list may predate jobs started from other windows.
+        const transfers = await listTransfers().catch(() => null)
 
         if (transfers?.active && transfers.active.length > 0) {
             const answer = await ask('All active transfers will be stopped.', {
