@@ -6,6 +6,8 @@ import { useRemoteConfig } from '../../../lib/hooks'
 import type { RemoteString } from './types'
 import { getPathSegments } from './utils'
 
+const RE_DRIVE_LETTER = /^[A-Za-z]:$/
+
 export default function PathBreadcrumb({
     remote,
     path,
@@ -32,8 +34,21 @@ export default function PathBreadcrumb({
 
     const handleSegmentClick = useCallback(
         (index: number) => {
+            // Windows local paths start with a drive letter ("C:") and must keep
+            // backslash separators, otherwise "/C:/Users" is parsed as remote "/C"
+            const drive =
+                remote === 'UI_LOCAL_FS' && RE_DRIVE_LETTER.test(segments[0] ?? '')
+                    ? segments[0]
+                    : null
             if (index < 0) {
-                onNavigate(remote === 'UI_LOCAL_FS' ? '/' : `${remote}:/`)
+                if (drive) {
+                    onNavigate(`${drive}\\`)
+                } else {
+                    onNavigate(remote === 'UI_LOCAL_FS' ? '/' : `${remote}:/`)
+                }
+            } else if (drive) {
+                const newPath = segments.slice(0, index + 1).join('\\')
+                onNavigate(index === 0 ? `${newPath}\\` : newPath)
             } else {
                 const newPath = segments.slice(0, index + 1).join('/')
                 if (remote === 'UI_LOCAL_FS') {
