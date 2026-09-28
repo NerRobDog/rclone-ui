@@ -326,9 +326,9 @@ const FilePanel = forwardRef<
             if (!onDrop) return
             event.preventDefault()
 
-            let items: SelectItem[] | null = null
+            let items: SelectItem[] | null = dragStateRef.current
 
-            const data = event.dataTransfer.getData('application/json')
+            const data = items ? null : event.dataTransfer.getData('application/json')
             if (data) {
                 try {
                     const paths = JSON.parse(data) as string[]
@@ -339,10 +339,6 @@ const FilePanel = forwardRef<
                 } catch {
                     // Invalid JSON data
                 }
-            }
-
-            if (!items && dragStateRef.current) {
-                items = dragStateRef.current
             }
 
             if (!items || items.length === 0) return
