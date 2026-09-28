@@ -1383,10 +1383,19 @@ function formatUrlLabel(raw: string): string {
 }
 
 function normalizePathForArgs(path: ToolbarActionPath): string {
-    if (!path.isLocal && !path.full.includes(':/')) {
+    if (path.isLocal) {
+        return path.full
+    }
+    const colonIndex = path.full.indexOf(':')
+    if (colonIndex === -1) {
         return `${path.full}:/`
     }
-    return path.full
+    const remainder = path.full.slice(colonIndex + 1)
+    if (remainder.startsWith('/')) {
+        return path.full
+    }
+    // "remote:" / "remote:dir" -> "remote:/" / "remote:/dir"
+    return `${path.full.slice(0, colonIndex)}:/${remainder}`
 }
 
 function formatDestinationLabel(path: ToolbarActionPath): string {
