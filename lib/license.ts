@@ -3,6 +3,15 @@ import { fetch } from '@tauri-apps/plugin-http'
 import { platform } from '@tauri-apps/plugin-os'
 import { usePersistedStore } from '../store/persisted'
 
+// Thrown when the license server could not be reached or returned an unreadable response, as
+// opposed to the server explicitly rejecting the license.
+export class LicenseNetworkError extends Error {
+    constructor(message: string) {
+        super(message)
+        this.name = 'LicenseNetworkError'
+    }
+}
+
 interface LicenseCallLogs {
     start: string
     uidFail: string
@@ -49,7 +58,9 @@ async function licenseCall<T extends { error?: string }>(
         .catch((e) => {
             console.error(logs.fetchFail)
             console.error(JSON.stringify(e))
-            throw new Error(`Failed to ${failVerb} license. Are you connected to the internet?`)
+            throw new LicenseNetworkError(
+                `Failed to ${failVerb} license. Are you connected to the internet?`
+            )
         })
 
     if (response.error) {

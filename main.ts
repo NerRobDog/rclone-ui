@@ -14,7 +14,7 @@ import { defaultOptions } from 'tauri-plugin-sentry-api'
 import { getDeepLinkUrl, handleDeepLinkUrl } from './lib/deep'
 import { CLOSE_APP, RELAUNCH_APP, RESTART_RCLONE, type RestartRclonePayload } from './lib/events'
 import { LOCAL_HOST_ID, RC_PORT, getHostInfo, makeLocalHost } from './lib/hosts'
-import { validateLicense } from './lib/license'
+import { LicenseNetworkError, validateLicense } from './lib/license'
 import {
     clearWatchedJobs,
     dispatchNotification,
@@ -219,8 +219,12 @@ async function validateInstance() {
     try {
         await validateLicense(licenseKey)
     } catch (e) {
-        console.log('[validateInstance] error validating license, marking as invalid')
-        usePersistedStore.setState({ licenseValid: false })
+        if (e instanceof LicenseNetworkError) {
+            console.log('[validateInstance] license server unreachable, keeping previous state')
+        } else {
+            console.log('[validateInstance] error validating license, marking as invalid')
+            usePersistedStore.setState({ licenseValid: false })
+        }
 
         if (e instanceof Error) {
             await message(e.message, {
