@@ -1340,7 +1340,8 @@ function matchesKeyword(query: string, keywords: string[]): boolean {
 
     return keywords.some((keyword) => {
         const lowerKeyword = keyword.toLowerCase()
-        return lowerKeyword.includes(normalized) || normalized.includes(lowerKeyword)
+        // startsWith, not includes: "bisync" must not match "sync", nor "remove" match "move"
+        return lowerKeyword.includes(normalized) || normalized.startsWith(lowerKeyword)
     })
 }
 
