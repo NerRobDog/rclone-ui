@@ -260,11 +260,10 @@ async function registerRcloneWindowListeners() {
     await window.listen('close-app', async () => {
         console.log('[registerRcloneWindowListeners] close-app requested')
 
-        const transfers = await queryClient.ensureQueryData({
-            queryKey: ['transfers', 'list', 'all'],
-            queryFn: async () => await listTransfers(),
-            staleTime: 10_000, // 10 seconds
-            gcTime: 60_000, // 1 minute
+        // Always ask rclone: cached data may predate jobs started from other windows.
+        const transfers = await listTransfers().catch((error) => {
+            console.error('[registerRcloneWindowListeners] failed to list transfers', error)
+            return null
         })
 
         if (transfers?.active && transfers.active.length > 0) {
@@ -311,11 +310,10 @@ async function registerRcloneWindowListeners() {
     await window.listen('relaunch-app', async () => {
         console.log('[registerRcloneWindowListeners] relaunch-app requested')
 
-        const transfers = await queryClient.ensureQueryData({
-            queryKey: ['transfers', 'list', 'all'],
-            queryFn: async () => await listTransfers(),
-            staleTime: 10_000, // 10 seconds
-            gcTime: 60_000, // 1 minute
+        // Always ask rclone: cached data may predate jobs started from other windows.
+        const transfers = await listTransfers().catch((error) => {
+            console.error('[registerRcloneWindowListeners] failed to list transfers', error)
+            return null
         })
 
         if (transfers?.active && transfers.active.length > 0) {

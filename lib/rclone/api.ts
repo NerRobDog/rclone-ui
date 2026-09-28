@@ -8,7 +8,7 @@ import type { JobItem } from '../../types/jobs'
 import type { FlagValue } from '../../types/rclone'
 import { getFsInfo } from '../format'
 import { restartActiveRclone, runRcloneCli } from './cli'
-import rclone from './client'
+import rclone, { fetchJobStatus } from './client'
 import { parseRcloneOptions } from './common'
 
 const RE_BACKSLASH = /\\/g
@@ -389,202 +389,227 @@ export async function startMove({
 }
 
 /* JOBS */
+const RE_CONNECTION_STRING_PARAMS = /^([^,:]*),(?:[^":]|"[^"]*")*:/
+
+/** `remote,opt="x":path` -> `remote:path`, and strips Windows extended-length prefixes. */
+function readableFsPath(path: string) {
+    const stripped = path.replace(RE_CONNECTION_STRING_PARAMS, '$1:')
+    return platform() === 'windows' ? stripped.replace(RE_WINDOWS_EXTENDED_PATH, '') : stripped
+}
+
+function joinFsPath(fs: string, remote?: string) {
+    if (!remote) {
+        return fs
+    }
+    return fs.endsWith(':') || fs.endsWith('/') ? `${fs}${remote}` : `${fs}/${remote}`
+}
+
+function jobLabelFromInput(input: Record<string, any>) {
+    const fs = input.srcFs ?? input.path1 ?? input.fs
+    if (typeof fs !== 'string' || !fs) {
+        return undefined
+    }
+    const remote = input.srcRemote ?? input.remote
+    return readableFsPath(joinFsPath(fs, typeof remote === 'string' ? remote : undefined))
+}
+
+/** Remembers what a job operates on, so it can be labelled before rclone reports any transfer. */
+export function rememberJobLabels(jobId: number | undefined, inputs: Record<string, any>[]) {
+    if (typeof jobId !== 'number') {
+        return
+    }
+    const labels = inputs.map(jobLabelFromInput).filter((l): l is string => !!l)
+    if (labels.length === 0) {
+        return
+    }
+    useStore.setState((state) => ({
+        jobLabels: { ...state.jobLabels, [jobId]: labels },
+    }))
+}
+
 async function fetchTransferred() {
     const transferredStats = await rclone('/core/transferred')
 
-    const transferred = transferredStats?.transferred
+    return transferredStats?.transferred ?? []
+}
 
-    return transferred
+type TransferredItem = Awaited<ReturnType<typeof fetchTransferred>>[number]
+type JobStatus = NonNullable<Awaited<ReturnType<typeof fetchJobStatus>>>
+
+function stringField(item: unknown, key: string) {
+    const value =
+        item && typeof item === 'object' ? (item as Record<string, unknown>)[key] : undefined
+    return typeof value === 'string' && value ? value : undefined
 }
 
 async function fetchJob(
     jobId: number,
-    transferred: Awaited<ReturnType<typeof fetchTransferred>>,
-    checkingItems: { group?: string; name?: string; size?: number }[]
-) {
-    console.log('[fetchJob] fetching job', jobId)
+    {
+        transferred,
+        status,
+        isRunning,
+    }: { transferred: TransferredItem[]; status: JobStatus | null; isRunning: boolean }
+): Promise<JobItem | null> {
+    const group = `job/${jobId}`
 
-    const job = await rclone('/core/stats', {
-        params: {
-            query: {
-                group: `job/${jobId}`,
-            },
-        },
-    })
-    console.log('[fetchJob] job stats', jobId, JSON.stringify(job, null, 2))
-
-    const jobStatus = await rclone('/job/status', {
-        params: {
-            query: {
-                jobid: jobId,
-            },
-        },
-    })
-    console.log('[fetchJob] job status', jobId, JSON.stringify(jobStatus, null, 2))
-
-    let hasError = !!jobStatus?.error
-    const isDryRun = useStore.getState().dryRunJobIds.includes(jobId)
-
-    if (
-        jobStatus.output &&
-        typeof jobStatus.output === 'object' &&
-        'results' in jobStatus.output &&
-        Array.isArray(jobStatus.output.results)
-    ) {
-        if (!hasError) {
-            hasError = jobStatus.output.results.some((result: any) => !!result?.error)
-        }
-    }
-
-    const jobCheckingItems = checkingItems.filter((c) => c.group === `job/${jobId}`)
-    const isChecking = jobCheckingItems.length > 0
-    const checkingCount = jobCheckingItems.length
-
-    console.log('[fetchJob] checking state', jobId, { isChecking, checkingCount })
-
-    const relatedItems = transferred.filter((t) => t.group === `job/${jobId}`)
-
-    if (relatedItems.length === 0 && !isChecking) {
-        console.log('[fetchJob] no relatedItems and not checking', jobId)
+    // Children of a job/batch are jobs too, but they report into the parent's group.
+    if (status?.group && status.group !== group) {
         return null
     }
 
-    console.log('[fetchJob] relatedItems', JSON.stringify(relatedItems, null, 2))
+    const job = await rclone('/core/stats', { params: { query: { group } } }).catch(() => null)
 
-    const sources = new Set<string>()
-
-    if (relatedItems.length === 1) {
-        if (relatedItems[0].srcFs) {
-            const combinedSource = `${relatedItems[0].srcFs}${relatedItems[0].name}`
-
-            sources.add(
-                platform() === 'windows'
-                    ? combinedSource.replace(RE_WINDOWS_EXTENDED_PATH, '')
-                    : combinedSource
-            )
-        }
-    } else {
-        for (const item of relatedItems) {
-            if (item.srcFs) {
-                sources.add(
-                    platform() === 'windows'
-                        ? item.srcFs.replace(RE_WINDOWS_EXTENDED_PATH, '')
-                        : item.srcFs
-                )
-            }
-        }
+    let hasError = !!status?.error
+    const output = status?.output as { results?: unknown } | undefined
+    if (!hasError && Array.isArray(output?.results)) {
+        hasError = output.results.some((result: any) => !!result?.error)
     }
 
-    if (isChecking && sources.size === 0) {
-        for (const checkItem of jobCheckingItems) {
-            if (checkItem.name) {
-                sources.add(checkItem.name)
+    const transferring = job?.transferring ?? []
+    // core/stats reports `checking` as plain file names, not objects.
+    const checkingNames = ((job?.checking ?? []) as unknown[])
+        .map((c) => (typeof c === 'string' ? c : stringField(c, 'name')))
+        .filter((c): c is string => !!c)
+    const relatedItems = transferred.filter((t) => t.group === group)
+
+    const sources = new Set<string>(useStore.getState().jobLabels[jobId] ?? [])
+
+    if (sources.size === 0) {
+        const items: unknown[] = [...relatedItems, ...transferring]
+        const withSrc = items.filter((item) => stringField(item, 'srcFs'))
+
+        if (items.length === 1 && withSrc.length === 1) {
+            sources.add(
+                readableFsPath(
+                    joinFsPath(stringField(items[0], 'srcFs')!, stringField(items[0], 'name'))
+                )
+            )
+        } else {
+            for (const item of withSrc) {
+                sources.add(readableFsPath(stringField(item, 'srcFs')!))
+            }
+        }
+
+        // Downloads and deletes have no source fs, fall back to what is being written/removed.
+        if (sources.size === 0) {
+            for (const item of items) {
+                const dstFs = stringField(item, 'dstFs')
+                const name = stringField(item, 'name')
+                const label = dstFs
+                    ? joinFsPath(dstFs, items.length === 1 ? name : undefined)
+                    : name
+                if (label) {
+                    sources.add(readableFsPath(label))
+                }
+            }
+        }
+
+        if (sources.size === 0) {
+            for (const name of checkingNames) {
+                sources.add(name)
             }
         }
     }
 
     if (sources.size === 0 && !hasError) {
-        console.log('[fetchJob] source or hasError not found', jobId)
-        return null
+        if (!isRunning) {
+            return null
+        }
+        sources.add('Preparing…')
     }
+
+    const bytes = job?.bytes ?? 0
+    const totalBytes = job?.totalBytes ?? 0
 
     return {
         id: jobId,
-        bytes: job.bytes,
-        totalBytes: job.totalBytes,
-        speed: job.speed,
+        type: isRunning ? 'active' : 'inactive',
+        bytes,
+        totalBytes,
+        speed: isRunning ? (job?.speed ?? 0) : 0,
 
-        done: job.bytes === job.totalBytes,
-        progress: job.totalBytes > 0 ? Math.round((job.bytes / job.totalBytes) * 100) : 0,
-        hasError: hasError,
+        done: bytes === totalBytes,
+        progress: totalBytes > 0 ? Math.round((bytes / totalBytes) * 100) : 0,
+        hasError,
 
         sources: Array.from(sources),
-        isChecking,
-        checkingCount,
-        isDryRun,
+        isChecking: isRunning && checkingNames.length > 0,
+        checkingCount: isRunning ? checkingNames.length : 0,
+        isDryRun: useStore.getState().dryRunJobIds.includes(jobId),
     }
 }
 
+// Finished jobs never change, so there is no need to re-fetch them on every poll.
+const finishedJobCache = new Map<string, JobItem | null>()
+const FETCH_JOB_CONCURRENCY = 8
+
 export async function listTransfers() {
-    console.log('[listTransfers] starting')
+    const [jobList, transferred, allStats] = await Promise.all([
+        rclone('/job/list').catch((error) => {
+            console.error('[listTransfers] job/list failed', error)
+            return null
+        }),
+        fetchTransferred(),
+        rclone('/core/stats'),
+    ])
 
-    const allStats = await rclone('/core/stats')
-    console.log('[listTransfers] allStats', JSON.stringify(allStats, null, 2))
+    const runningIds = new Set<number>(jobList?.runningIds ?? [])
+    const jobIds = new Set<number>(jobList?.jobids ?? [])
 
-    const transferring = allStats?.transferring || []
-    const checking = allStats?.checking || []
+    // Jobs expire from job/list (60s by default on remote hosts) while their stats live on.
+    for (const t of [...transferred, ...(allStats?.transferring ?? [])]) {
+        if (t.group?.startsWith('job/')) {
+            jobIds.add(Number(t.group.split('/')[1]))
+        }
+    }
+    if (!jobList) {
+        for (const t of allStats?.transferring ?? []) {
+            if (t.group?.startsWith('job/')) {
+                runningIds.add(Number(t.group.split('/')[1]))
+            }
+        }
+    }
 
-    console.log('[listTransfers] transferring count:', transferring.length)
-    console.log('[listTransfers] checking count:', checking.length)
+    const sortedIds = Array.from(jobIds)
+        .filter((id) => Number.isFinite(id))
+        .sort((a, b) => a - b)
 
-    const transferred = await fetchTransferred()
-    console.log('[listTransfers] transferred count:', transferred?.length || 0)
+    const results: (JobItem | null)[] = new Array(sortedIds.length).fill(null)
+    let cursor = 0
+    const worker = async () => {
+        while (cursor < sortedIds.length) {
+            const index = cursor++
+            const jobId = sortedIds[index]
+            const cacheKey = `${jobList?.executeId ?? ''}:${jobId}`
+
+            if (!runningIds.has(jobId) && finishedJobCache.has(cacheKey)) {
+                results[index] = finishedJobCache.get(cacheKey)!
+                continue
+            }
+
+            const status = await fetchJobStatus(jobId).catch(() => null)
+            const isRunning = status ? !status.finished : runningIds.has(jobId)
+            const job = await fetchJob(jobId, { transferred, status, isRunning })
+
+            if (status?.finished && jobList?.executeId) {
+                finishedJobCache.set(cacheKey, job)
+            }
+            results[index] = job
+        }
+    }
+    await Promise.all(Array.from({ length: FETCH_JOB_CONCURRENCY }, worker))
 
     const jobs = {
         active: [] as JobItem[],
         inactive: [] as JobItem[],
     }
-
-    const transferringJobIds = new Set(
-        transferring
-            .filter((t) => t.group?.startsWith('job/'))
-            .map((t) => Number(t.group!.split('/')[1]))
-    )
-
-    const checkingJobIds = new Set(
-        checking
-            .filter((c) => c.group?.startsWith('job/'))
-            .map((c) => Number(c.group!.split('/')[1]))
-    )
-
-    const activeJobIds = new Set([...transferringJobIds, ...checkingJobIds])
-    const sortedActiveJobIds = Array.from(activeJobIds).sort((a, b) => a - b)
-
-    console.log('[listTransfers] transferring job IDs:', Array.from(transferringJobIds))
-    console.log('[listTransfers] checking job IDs:', Array.from(checkingJobIds))
-    console.log('[listTransfers] combined active job IDs:', sortedActiveJobIds)
-
-    const isWindows = platform() === 'windows'
-    console.log('[listTransfers] isWindows', isWindows)
-
-    for (const jobId of sortedActiveJobIds) {
-        const job = await fetchJob(jobId, transferred, checking)
+    for (const job of results) {
         if (job) {
-            jobs.active.push({
-                ...job,
-                type: 'active',
-            })
+            jobs[job.type].push(job)
         }
     }
 
-    const inactiveJobIds = new Set(
-        transferred
-            ?.filter((t) => t.group?.startsWith('job/'))
-            .map((t) => Number(t.group!.split('/')[1]))
-            .filter((id) => !activeJobIds.has(id))
-            .sort((a, b) => a - b)
-    )
-    console.log('[listTransfers] inactive job IDs:', Array.from(inactiveJobIds))
-
-    for (const jobId of inactiveJobIds) {
-        const job = await fetchJob(jobId, transferred, checking)
-        if (job) {
-            jobs.inactive.push({
-                ...job,
-                speed: 0,
-                type: 'inactive',
-                isChecking: false,
-                checkingCount: 0,
-            })
-        }
-    }
-
-    console.log(
-        '[listTransfers] final result - active:',
-        jobs.active.length,
-        'inactive:',
-        jobs.inactive.length
-    )
+    console.log('[listTransfers] active:', jobs.active.length, 'inactive:', jobs.inactive.length)
 
     return jobs
 }
@@ -873,6 +898,8 @@ export async function startBisync({
         }
     )
 
+    rememberJobLabels(r?.jobid, [{ srcFs: srcFullDirPath }])
+
     if (!r?.jobid) {
         console.error('Failed to start job: missing jobid', r)
         throw new Error('Failed to start operation')
@@ -968,6 +995,8 @@ export async function startSync({
             retries: 3,
         }
     )
+
+    rememberJobLabels(r?.jobid, [{ srcFs: srcFullDirPath }])
 
     if (!r?.jobid) {
         console.error('Failed to start job: missing jobid', r)
@@ -1214,6 +1243,7 @@ export async function startBatch(inputs: ({ _path: string } & Record<string, any
     )
 
     console.log('[startBatch] job created', { jobid: r.jobid })
+    rememberJobLabels(r.jobid, inputs)
 
     await new Promise((resolve) => setTimeout(resolve, 1000))
 

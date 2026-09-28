@@ -110,3 +110,19 @@ export default async function rclone<
 
     return result.data as OpenApiMethodResponse<typeof client, 'post', Path, Init>
 }
+
+/**
+ * Like `rclone('/job/status')`, but resolves with the status of failed jobs instead of
+ * throwing on their `error` field. Resolves with `null` when the job is unknown (e.g. expired).
+ */
+export async function fetchJobStatus(jobId: number) {
+    const result = await getClient().POST('/job/status', {
+        params: { query: { jobid: jobId } },
+    })
+
+    if (!result.response.ok || !result.data) {
+        return null
+    }
+
+    return result.data as typeof result.data & { group?: string }
+}

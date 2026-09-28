@@ -9,6 +9,7 @@ import pRetry from 'p-retry'
 import { startTransition, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import notify from '../../lib/notify'
+import { rememberJobLabels } from '../../lib/rclone/api'
 import rclone from '../../lib/rclone/client'
 import CommandInfoButton from '../components/CommandInfoButton'
 import CommandsDropdown from '../components/CommandsDropdown'
@@ -85,7 +86,7 @@ export default function Download() {
 
             const downloadUrl = downloadData?.url || url
 
-            await pRetry(
+            const r = await pRetry(
                 async () =>
                     rclone('/operations/copyurl', {
                         params: {
@@ -100,6 +101,8 @@ export default function Download() {
                     }),
                 { retries: 3 }
             )
+
+            rememberJobLabels(r?.jobid, [{ fs: destination, remote: filename }])
         },
         onSuccess: async () => {
             await notify({

@@ -28,6 +28,9 @@ interface State {
     } | null
 
     dryRunJobIds: number[]
+
+    /** Human-readable sources for jobs started from this app, keyed by job id. */
+    jobLabels: Record<number, string[]>
 }
 
 export const useStore = create<State>()(
@@ -48,6 +51,8 @@ export const useStore = create<State>()(
             cloudflaredTunnel: null,
 
             dryRunJobIds: [],
+
+            jobLabels: {},
         }),
         { name: 'shared-store' }
     )
