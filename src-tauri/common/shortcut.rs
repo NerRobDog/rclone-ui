@@ -175,8 +175,7 @@ fn parse_shortcut(shortcut: &str) -> Result<Shortcut, String> {
     shortcut.parse::<Shortcut>().map_err(|e| e.to_string())
 }
 
-fn register_toolbar_shortcut(app_handle: &AppHandle, shortcut: &str) -> Result<(), String> {
-    let parsed = parse_shortcut(shortcut)?;
+fn register_toolbar_shortcut(app_handle: &AppHandle, parsed: Shortcut) -> Result<(), String> {
     app_handle
         .global_shortcut()
         .on_shortcut(parsed, |app, _shortcut, event| {
@@ -193,15 +192,17 @@ pub fn set_toolbar_shortcut(app_handle: &AppHandle, shortcut: Option<&str>) -> R
     let shortcut = shortcut
         .map(|s| s.trim())
         .filter(|s| !s.is_empty())
-        .map(|s| s.to_string());
+        .map(parse_shortcut)
+        .transpose()?;
 
+    // Parse before unregistering so an invalid shortcut keeps the current one active.
     app_handle
         .global_shortcut()
         .unregister_all()
         .map_err(|e| e.to_string())?;
 
-    if let Some(shortcut) = shortcut {
-        register_toolbar_shortcut(app_handle, shortcut.as_str())?;
+    if let Some(parsed) = shortcut {
+        register_toolbar_shortcut(app_handle, parsed)?;
     }
 
     Ok(())
