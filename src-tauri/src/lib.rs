@@ -564,9 +564,15 @@ async fn tiny_prompt_text(
     sensitive: Option<bool>,
 ) -> Result<Option<String>, String> {
     let is_sensitive = sensitive.unwrap_or(false);
-    let default_value = default.unwrap_or_default();
-    let title_clone = title.clone();
-    let message_clone = message.clone();
+
+    // tinyfiledialogs rejects ' " ` in any argument and substitutes an "INVALID ... WITH QUOTES"
+    // placeholder (returned as the input on OK for the default). Show typographic quotes in the
+    // title/message; a default containing quotes can't be shown verbatim, so leave it empty.
+    let has_quote = |s: &str| s.contains(['\'', '"', '`']);
+    let display = |s: &str| s.replace(['\'', '`'], "\u{2019}").replace('"', "\u{201D}");
+    let default_value = default.filter(|d| !has_quote(d)).unwrap_or_default();
+    let title_clone = display(&title);
+    let message_clone = display(&message);
 
     let result = tauri::async_runtime::spawn_blocking(move || {
         if is_sensitive {
