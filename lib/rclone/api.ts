@@ -530,6 +530,7 @@ async function startMountInner({
     const dstFilePathNormalized = dstFilePath.replace(RE_BACKSLASH, '/')
 
     let directoryExists: boolean | undefined
+    let isNotDirectory = false
 
     try {
         const r = await pRetry(
@@ -546,14 +547,16 @@ async function startMountInner({
         )
         if (!r || !r.item) {
             directoryExists = false
-        } else {
-            if (!r.item.IsDir) {
-                throw new Error('The selected directory is not a directory')
-            }
+        } else if (r.item.IsDir) {
             directoryExists = true
+        } else {
+            isNotDirectory = true
         }
     } catch (err) {
         console.error('[Mount] Error checking if directory exists:', err)
+    }
+    if (isNotDirectory) {
+        throw new Error('The selected directory is not a directory')
     }
     console.log('[Mount] directoryExists', directoryExists)
 
