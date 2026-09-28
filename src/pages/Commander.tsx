@@ -730,7 +730,7 @@ function OperationDialog({
                 sources,
                 destination,
                 options: {
-                    copy: overwrite ? {} : { no_update_modtime: true },
+                    copy: overwrite ? {} : { ignore_existing: true },
                     config: {},
                     filter: {},
                 },
@@ -754,7 +754,7 @@ function OperationDialog({
                 sources,
                 destination,
                 options: {
-                    move: overwrite ? {} : { no_update_modtime: true },
+                    move: overwrite ? {} : { ignore_existing: true },
                     config: {},
                     filter: {},
                 },
