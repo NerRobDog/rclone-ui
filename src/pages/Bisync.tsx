@@ -411,6 +411,7 @@ export default function Bisync() {
         startTransition(() => {
             resetJson()
             setOuterBisyncOptions({})
+            setCronExpression(null)
             startBisyncMutation.reset()
         })
     }, [resetJson, startBisyncMutation.reset])
@@ -420,6 +421,7 @@ export default function Bisync() {
             resetJson()
             resetLocks()
             setOuterBisyncOptions({})
+            setCronExpression(null)
             setSource(undefined)
             setDest(undefined)
             startBisyncMutation.reset()
