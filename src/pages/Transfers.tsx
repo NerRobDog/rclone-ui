@@ -48,11 +48,9 @@ export default function Transfers() {
     const transfersQuery = useQuery({
         queryKey: ['transfers', 'list', 'all'],
         queryFn: async () => await listTransfers(),
-        // refetchInterval: 2000,
-        // refetchOnWindowFocus: true,
-        // refetchOnMount: true,
-        // refetchOnReconnect: true,
-        // refetchIntervalInBackground: true,
+        // Jobs are started from other windows and rclone never pushes updates, so poll.
+        refetchInterval: (query) => ((query.state.data?.active.length ?? 0) > 0 ? 2000 : 5000),
+        refetchOnMount: 'always',
     })
 
     const transfers = useMemo(
