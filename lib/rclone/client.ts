@@ -135,7 +135,9 @@ async function request(mode: 'sync' | 'async', path: string, init: any[]): Promi
     }
 
     const data = result.data as { error?: unknown } | undefined
-    if (data?.error) {
+    // job/status reports a failed job's error as a regular field: that is the answer, not a
+    // failed request (an unknown job id still fails at the HTTP level above).
+    if (data?.error && path !== '/job/status') {
         console.error('[rclone] DATA ERROR', path, { error: data.error })
         const errMsg = typeof data.error === 'string' ? data.error : JSON.stringify(data.error)
 
