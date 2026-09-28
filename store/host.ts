@@ -18,6 +18,12 @@ export async function initHostStore(hostId: string) {
 
     console.log('[HostStore] Initializing for host:', hostId)
     activeHostId = hostId
+    // Reset to defaults before loading the new file: rehydrate merges the persisted state over the
+    // current one, so keys missing from the new host's file (or no file at all) would keep the
+    // previous host's values and get written back to the new host. Detach storage first so the
+    // reset itself is not persisted anywhere.
+    activeStore = null
+    useHostStore.setState(useHostStore.getInitialState(), true)
     activeStore = new LazyStore(`hosts/${hostId}/store.json`)
 
     if (disposeKeyChange) {
