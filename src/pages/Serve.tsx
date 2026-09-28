@@ -95,13 +95,8 @@ export default function Serve() {
         }),
     })
 
-    // START defers the mutation, so guard double presses until isPending flips and settles.
+    // START defers the mutation, so guard double presses until isPending flips.
     const startPressedRef = useRef(false)
-    useEffect(() => {
-        if (!startServeMutation.isPending) {
-            startPressedRef.current = false
-        }
-    }, [startServeMutation.isPending])
 
     useEffect(() => {
         startTransition(() => {
@@ -462,7 +457,10 @@ export default function Serve() {
                                 onPress={() => {
                                     if (startPressedRef.current) return
                                     startPressedRef.current = true
-                                    setTimeout(() => startServeMutation.mutate(), 100)
+                                    setTimeout(() => {
+                                        startPressedRef.current = false
+                                        startServeMutation.mutate()
+                                    }, 100)
                                 }}
                                 size="lg"
                                 fullWidth={true}
