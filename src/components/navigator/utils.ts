@@ -228,6 +228,8 @@ export function searchPath(
 // rename). Both endpoints silently overwrite — or merge into — an existing target, so the
 // destination is stat'ed first and the rename refused when something is already there.
 export async function renamePath(fullPath: string, isDir: boolean, newName: string) {
+    if (RE_PATH_SEPARATOR.test(newName)) throw new Error('Name cannot contain / or \\')
+
     const { root, filePath } = getFsInfo(fullPath)
     const fs = root === ':local:' ? ':local:/' : root
     const dstRemote = [...filePath.split('/').slice(0, -1), newName].join('/')
