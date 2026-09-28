@@ -7,7 +7,7 @@ import { usePersistedStore } from '../../store/persisted'
 import type { ConfigFile } from '../../types/config'
 import { RESTART_RCLONE, emitToMain } from '../events'
 import { getConfigParentFolder } from '../format'
-import { getConfigPath } from './common'
+import { resolveConfigFilePath } from './common'
 
 interface ExecResult {
     code: number | null
@@ -309,7 +309,7 @@ async function createRcloneCliCommand(
 
     let configPath: string
     try {
-        configPath = await getConfigPath({ id: activeConfig.id, validate: true })
+        configPath = await resolveConfigFilePath(activeConfig, { validate: true })
     } catch (error) {
         Sentry.captureException(error)
         throw error
