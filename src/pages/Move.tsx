@@ -65,7 +65,7 @@ export default function Move() {
         searchParams.get('initialSource') ? [searchParams.get('initialSource')!] : undefined
     )
     const [dest, setDest] = useState<string | undefined>(
-        searchParams.get('initialDest') ? searchParams.get('initialDest')! : undefined
+        searchParams.get('initialDestination') ? searchParams.get('initialDestination')! : undefined
     )
 
     const {
