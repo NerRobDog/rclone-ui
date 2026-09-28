@@ -43,7 +43,14 @@ export function getRemoteName(path?: string) {
     if (RE_WINDOWS_DRIVE.test(path)) {
         return null
     }
-    return path.split(':')[0]
+    // The remote is everything before the FIRST colon (later colons belong to the path). A path
+    // separator in the name (ignoring `remote,opt=val` connection-string options) means it's a
+    // local path that merely contains a colon, e.g. `/home/u/Backup 10:30/`.
+    const name = path.slice(0, path.indexOf(':'))
+    if (RE_PATH_SEPARATOR.test(name.split(',')[0])) {
+        return null
+    }
+    return name
 }
 
 export function buildReadablePath(path: string, type: 'short' | 'long' = 'long') {
@@ -150,7 +157,7 @@ export function getFsInfo(fs: string, sep = '/') {
 
     if (fsRemote) {
         root = `${fsRemote}:`
-        path = normalizedFs.replace(fsRemote, '').split(':')[1]
+        path = normalizedFs.slice(fsRemote.length + 1)
     } else {
         const windowsDriveMatch = normalizedFs.match(RE_WINDOWS_DRIVE_WITH_SLASH)
         if (windowsDriveMatch) {
