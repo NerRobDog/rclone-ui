@@ -13,8 +13,9 @@ export interface OptionGroupDef<K extends string = string> {
     // Group identity: the jsonError step name and the state key. Parse order = defs order.
     key: K
     // Key looked up in a template's grouped options, when different from `key` (Move and Bisync
-    // load the template's `copy` group into their own group). Defaults to `key`.
-    templateKey?: string
+    // load the template's `copy` group into their own group). An array merges several template
+    // groups in order (Sync offers both Copy and Sync flags). Defaults to `key`.
+    templateKey?: string | string[]
     // Seeded into the JSON string on mount and restored by resetJson. Omit for '{}'.
     defaults?: Record<string, FlagValue>
 }
@@ -259,9 +260,14 @@ export function useOptionGroups<K extends string>({
                     let changed = false
                     const next = { ...prev }
                     for (const g of defs) {
-                        const incoming = groupedOptions[g.templateKey ?? g.key] as
-                            | Record<string, FlagValue>
-                            | undefined
+                        const incomingGroups = [g.templateKey ?? g.key]
+                            .flat()
+                            .map((k) => groupedOptions[k] as Record<string, FlagValue> | undefined)
+                            .filter((group) => !!group)
+                        const incoming: Record<string, FlagValue> | undefined =
+                            incomingGroups.length > 0
+                                ? Object.assign({}, ...incomingGroups)
+                                : undefined
                         // Truthiness only (as the pages did): groupByCategory always returns
                         // objects, so replace mode rewrites every group — clearing uncovered
                         // ones to '{}'.

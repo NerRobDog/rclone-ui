@@ -104,7 +104,11 @@ export default function Sync() {
         resetLocks,
     } = useOptionGroups({
         groups: [
-            { key: 'sync', defaults: RCLONE_CONFIG_DEFAULTS.copy },
+            {
+                key: 'sync',
+                templateKey: ['copy', 'sync'],
+                defaults: RCLONE_CONFIG_DEFAULTS.copy,
+            },
             { key: 'filter' },
             { key: 'config', defaults: RCLONE_CONFIG_DEFAULTS.config },
         ],
