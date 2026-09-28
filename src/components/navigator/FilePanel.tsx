@@ -326,7 +326,7 @@ const FilePanel = forwardRef<
             if (!onDrop) return
             event.preventDefault()
 
-            let items: SelectItem[] | null = dragStateRef.current
+            let items: SelectItem[] | null = dragStateRef.current?.length ? dragStateRef.current : null
 
             const data = items ? null : event.dataTransfer.getData('application/json')
             if (data) {
