@@ -27,7 +27,7 @@ import {
     WavesLadderIcon,
     WrenchIcon,
 } from 'lucide-react'
-import { startTransition, useEffect, useMemo, useState } from 'react'
+import { startTransition, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { onErrorDialog } from '../../lib/errors'
 import { getOptionsSubtitle } from '../../lib/flags'
@@ -94,6 +94,9 @@ export default function Serve() {
             log: ['[Serve] Failed to start serve:'],
         }),
     })
+
+    // START defers the mutation, so guard double presses until isPending flips.
+    const startPressedRef = useRef(false)
 
     useEffect(() => {
         startTransition(() => {
@@ -451,7 +454,14 @@ export default function Serve() {
                             className="flex flex-1"
                         >
                             <Button
-                                onPress={() => setTimeout(() => startServeMutation.mutate(), 100)}
+                                onPress={() => {
+                                    if (startPressedRef.current) return
+                                    startPressedRef.current = true
+                                    setTimeout(() => {
+                                        startPressedRef.current = false
+                                        startServeMutation.mutate()
+                                    }, 100)
+                                }}
                                 size="lg"
                                 fullWidth={true}
                                 color="primary"

@@ -10,7 +10,7 @@ import {
 import { platform } from '@tauri-apps/plugin-os'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ClockIcon, EyeIcon } from 'lucide-react'
-import { type ComponentProps, type ReactNode, useCallback, useMemo } from 'react'
+import { type ComponentProps, type ReactNode, useCallback, useMemo, useRef } from 'react'
 import { useSchedulingAvailable } from '../../../lib/scheduler'
 import { openWindow } from '../../../lib/window'
 import type { Template } from '../../../types/template'
@@ -77,8 +77,21 @@ export default function OperationFooter({
     // (sandboxed installs, remote hosts) — mirrors the Cron options section on the operation pages.
     const schedulingAvailable = useSchedulingAvailable()
 
+    // onStart is deferred, so the button only disables once startIsPending flips; guard the
+    // gap so a double press can't start the operation twice.
+    const startPressedRef = useRef(false)
+
     const handleStartPress = useCallback(() => {
-        setTimeout(() => onStart(), 100)
+        if (startPressedRef.current) {
+            return
+        }
+        startPressedRef.current = true
+        setTimeout(() => {
+            // Released right after onStart: by then the mutation is pending (button disabled), and
+            // a start rejected by validation must not leave the button dead.
+            startPressedRef.current = false
+            onStart()
+        }, 100)
     }, [onStart])
 
     const handleDryRunPress = useCallback(() => {
