@@ -1346,7 +1346,15 @@ function matchesKeyword(query: string, keywords: string[]): boolean {
 
 function findServeType(query: string): string | undefined {
     const lower = query.toLowerCase()
-    return SERVE_TYPES.find((type) => lower.includes(type))
+    const tokens = lower.split(WHITESPACE_SPLIT)
+    const exact = SERVE_TYPES.find((type) => tokens.includes(type))
+    if (exact) {
+        return exact
+    }
+    // Longest first, so "sftp" is not mistaken for "ftp".
+    return [...SERVE_TYPES]
+        .sort((a, b) => b.length - a.length)
+        .find((type) => lower.includes(type))
 }
 
 function findFirstUrl(query: string): string | undefined {
