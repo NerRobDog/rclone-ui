@@ -165,7 +165,7 @@ export default function Browser() {
             const srcInfo = getFsInfo(entry.fullPath)
             const dstInfo = getFsInfo(savePath)
 
-            const srcFs = srcInfo.root
+            const srcFs = srcInfo.root === ':local:' ? ':local:/' : srcInfo.root
             const srcRemote = srcInfo.filePath
             const dstFs = dstInfo.root === ':local:' ? ':local:/' : dstInfo.root
             const dstRemote = dstInfo.filePath
@@ -217,7 +217,7 @@ export default function Browser() {
                 await rclone(endpoint as any, {
                     params: {
                         query: {
-                            fs: info.root,
+                            fs: info.root === ':local:' ? ':local:/' : info.root,
                             remote: info.filePath,
                         },
                     },
