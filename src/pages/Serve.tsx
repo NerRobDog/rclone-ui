@@ -282,12 +282,18 @@ export default function Serve() {
                     isDisabled={!!jsonError}
                     operation="serve"
                     onSelect={(groupedOptions, shouldMerge) => {
+                        // shared serve flags (addr, user, pass...) are grouped under the first
+                        // serve type that declares them, so merge every serve sub-group
+                        const templateServeOptions = Object.assign(
+                            {},
+                            ...Object.values(groupedOptions.serve)
+                        ) as Record<string, FlagValue>
                         startTransition(() => {
                             if (shouldMerge) {
                                 if (groupedOptions.serve && type)
                                     setServeOptionsJsonString(
                                         JSON.stringify(
-                                            { ...serveOptions, ...groupedOptions.serve[type] },
+                                            { ...serveOptions, ...templateServeOptions },
                                             null,
                                             2
                                         )
@@ -319,7 +325,7 @@ export default function Serve() {
                             } else {
                                 if (groupedOptions.serve && type)
                                     setServeOptionsJsonString(
-                                        JSON.stringify(groupedOptions.serve[type], null, 2)
+                                        JSON.stringify(templateServeOptions, null, 2)
                                     )
                                 if (groupedOptions.vfs)
                                     setVfsOptionsJsonString(
