@@ -190,19 +190,16 @@ fn register_toolbar_shortcut(app_handle: &AppHandle, shortcut: &str) -> Result<(
 }
 
 pub fn set_toolbar_shortcut(app_handle: &AppHandle, shortcut: Option<&str>) -> Result<(), String> {
+    // The frontend stores the default shortcut as `undefined`, so None means "use the default".
     let shortcut = shortcut
         .map(|s| s.trim())
         .filter(|s| !s.is_empty())
-        .map(|s| s.to_string());
+        .unwrap_or(DEFAULT_TOOLBAR_SHORTCUT);
 
     app_handle
         .global_shortcut()
         .unregister_all()
         .map_err(|e| e.to_string())?;
 
-    if let Some(shortcut) = shortcut {
-        register_toolbar_shortcut(app_handle, shortcut.as_str())?;
-    }
-
-    Ok(())
+    register_toolbar_shortcut(app_handle, shortcut)
 }
