@@ -322,8 +322,8 @@ fn get_arch() -> String {
 }
 
 #[tauri::command]
-fn get_uid() -> String {
-    return machine_uid::get().unwrap();
+fn get_uid() -> Result<String, String> {
+    machine_uid::get().map_err(|e| e.to_string())
 }
 
 #[tauri::command]
