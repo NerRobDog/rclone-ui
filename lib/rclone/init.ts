@@ -281,7 +281,7 @@ export async function initRclone(args: string[]) {
         console.log('[initRclone] proxy configured:', hostState.proxy.url)
         try {
             console.log('[initRclone] testing proxy connection')
-            await invoke<string>('test_proxy_connection', { proxy_url: hostState.proxy.url })
+            await invoke<string>('test_proxy_connection', { proxyUrl: hostState.proxy.url })
             console.log('[initRclone] proxy connection successful')
         } catch (error) {
             console.error('[initRclone] proxy connection failed:', error)
