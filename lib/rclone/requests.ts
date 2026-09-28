@@ -257,7 +257,8 @@ export function serializeOptions(
 
     if (options.remote && Object.keys(options.remote).length > 0) {
         serialized += Object.entries(options.remote)
-            .map(([key, value]) => `${key}="${value}"`)
+            // Quoted values escape an embedded `"` by doubling it, per rclone's connection-string syntax.
+            .map(([key, value]) => `${key}="${String(value).replace(/"/g, '""')}"`)
             .join(',')
     }
 
