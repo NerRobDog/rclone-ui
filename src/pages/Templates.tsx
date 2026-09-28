@@ -27,6 +27,7 @@ import {
 } from 'lucide-react'
 import { startTransition, useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { onErrorDialog } from '../../lib/errors'
 import { ADD_TEMPLATE, type AddTemplatePayload } from '../../lib/events'
 import { usePersistedStore } from '../../store/persisted'
 import type { Template } from '../../types/template'
@@ -89,6 +90,9 @@ export default function Templates() {
                 setIsSelecting(false)
             }
         },
+        onError: onErrorDialog('Remove Templates', 'Failed to remove templates', {
+            log: ['[Templates] Failed to remove templates:'],
+        }),
     })
 
     const exportTemplatesMutation = useMutation({
@@ -155,6 +159,9 @@ export default function Templates() {
                 setIsSelecting(false)
             }
         },
+        onError: onErrorDialog('Export Templates', 'Failed to export templates', {
+            log: ['[Templates] Failed to export templates:'],
+        }),
     })
 
     const filteredTemplates = useMemo(
